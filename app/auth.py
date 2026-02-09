@@ -193,8 +193,8 @@ def logout():
     Clears the Flask session and redirects to the landing page.
     """
     user_name = current_user.display_name
-    logout_user()
-    session.clear()
+    session.clear()        # clear custom session data first
+    logout_user()          # then let Flask-Login clear its own session keys & remember cookie
     flash(f'Goodbye, {user_name}! You have been logged out.', 'info')
     return redirect(url_for('auth.login'))
 
