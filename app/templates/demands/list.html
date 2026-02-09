@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Browse Demands{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h2 class="page-title mb-0"><i class="bi bi-briefcase-fill text-purple me-2"></i>Open Demands</h2>
+            <p class="text-muted mb-0">Browse and apply for project opportunities</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if current_user.is_pmo %}
+            <a href="{{ url_for('demands.create') }}" class="btn btn-accent btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> Raise Demand
+            </a>
+            <a href="{{ url_for('demands.export_excel') }}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i> Export
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- =====================================================
+         FILTERS BAR
+    ====================================================== -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3">
+            <form method="GET" action="{{ url_for('demands.list_demands') }}" id="filterForm">
+                <div class="row g-2 align-items-end">
+                    <!-- Search -->
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Search</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" name="search" class="form-control" placeholder="Project, client, DU..."
+                                   value="{{ filters.search }}">
+                        </div>
+                    </div>
+                    <!-- Status -->
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Status</label>
+                        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">All Active</option>
+                            <option value="open" {{ 'selected' if filters.status == 'open' }}>Open</option>
+                            <option value="in_progress" {{ 'selected' if filters.status == 'in_progress' }}>In Progress</option>
+                            <option value="filled" {{ 'selected' if filters.status == 'filled' }}>Filled</option>
+                            <option value="cancelled" {{ 'selected' if filters.status == 'cancelled' }}>Cancelled</option>
+                        </select>
+                    </div>
+                    <!-- Priority -->
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Priority</label>
+                        <select name="priority" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">All</option>
+                            <option value="critical" {{ 'selected' if filters.priority == 'critical' }}>🔴 Critical</option>
+                            <option value="high" {{ 'selected' if filters.priority == 'high' }}>🟠 High</option>
+                            <option value="medium" {{ 'selected' if filters.priority == 'medium' }}>🟡 Medium</option>
+                            <option value="low" {{ 'selected' if filters.priority == 'low' }}>🟢 Low</option>
+                        </select>
+                    </div>
+                    <!-- Career Level -->
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Career Level</label>
+                        <select name="career_level" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">All</option>
+                            <option value="8" {{ 'selected' if filters.career_level == '8' }}>CL8</option>
+                            <option value="9" {{ 'selected' if filters.career_level == '9' }}>CL9</option>
+                            <option value="10" {{ 'selected' if filters.career_level == '10' }}>CL10</option>
+                            <option value="11" {{ 'selected' if filters.career_level == '11' }}>CL11</option>
+                            <option value="12" {{ 'selected' if filters.career_level == '12' }}>CL12</option>
+                        </select>
+                    </div>
+                    <!-- Sort -->
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold">Sort By</label>
+                        <select name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="priority" {{ 'selected' if filters.sort == 'priority' }}>Priority</option>
+                            <option value="newest" {{ 'selected' if filters.sort == 'newest' }}>Newest First</option>
+                            <option value="oldest" {{ 'selected' if filters.sort == 'oldest' }}>Oldest First</option>
+                        </select>
+                    </div>
+                    <!-- Submit / Reset -->
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-purple btn-sm w-100">
+                            <i class="bi bi-funnel"></i>
+                        </button>
+                    </div>
+                </div>
+                {% if filters.skill %}
+                <div class="mt-2">
+                    <span class="badge bg-purple">Skill: {{ filters.skill }}
+                        <a href="{{ url_for('demands.list_demands') }}" class="text-white ms-1">&times;</a>
+                    </span>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         DEMANDS GRID
+    ====================================================== -->
+    {% if demands %}
+    <div class="row g-4">
+        {% for demand in demands %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="demand-card h-100">
+                <div class="demand-card-header">
+                    <span class="badge bg-{{ demand.priority_color }}">{{ demand.priority | upper }}</span>
+                    <span class="badge bg-{{ demand.status_color }}">{{ demand.status_display }}</span>
+                    {% if demand.application_count > 0 %}
+                    <span class="badge bg-info ms-auto" title="Applications received">
+                        <i class="bi bi-people-fill me-1"></i>{{ demand.application_count }}
+                    </span>
+                    {% endif %}
+                </div>
+                <h5 class="demand-card-title">
+                    <a href="{{ url_for('demands.detail', demand_id=demand.id) }}"
+                       class="text-decoration-none text-dark stretched-link">
+                        {{ demand.project_name }}
+                    </a>
+                </h5>
+                {% if demand.project_code %}
+                <small class="text-muted">{{ demand.project_code }}</small>
+                {% endif %}
+                <div class="demand-card-meta mt-2">
+                    <span><i class="bi bi-building me-1"></i>{{ demand.du_name }}</span>
+                    {% if demand.client_name %}
+                    <span><i class="bi bi-briefcase me-1"></i>{{ demand.client_name }}</span>
+                    {% endif %}
+                </div>
+                <div class="demand-card-skills mt-2">
+                    {% for skill in demand.skills[:4] %}
+                    <span class="skill-tag">{{ skill.name }}</span>
+                    {% endfor %}
+                    {% if demand.skills | length > 4 %}
+                    <span class="skill-tag more">+{{ demand.skills | length - 4 }}</span>
+                    {% endif %}
+                </div>
+                <div class="demand-card-footer mt-auto pt-3">
+                    <span><i class="bi bi-mortarboard me-1"></i>CL{{ demand.career_level }}</span>
+                    <span><i class="bi bi-people me-1"></i>{{ demand.num_positions }} pos.</span>
+                    {% if demand.start_date %}
+                    <span><i class="bi bi-calendar me-1"></i>{{ demand.start_date.strftime('%d %b') }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                <a class="page-link" href="{{ url_for('demands.list_demands', page=pagination.prev_num, **filters) }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                <li class="page-item {{ 'active' if page_num == pagination.page }}">
+                    <a class="page-link" href="{{ url_for('demands.list_demands', page=page_num, **filters) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                <a class="page-link" href="{{ url_for('demands.list_demands', page=pagination.next_num, **filters) }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <h4 class="text-muted mt-3">No demands found</h4>
+        <p class="text-muted">Try adjusting your filters or check back later.</p>
+        {% if current_user.is_pmo %}
+        <a href="{{ url_for('demands.create') }}" class="btn btn-accent mt-2">
+            <i class="bi bi-plus-lg me-1"></i> Create First Demand
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

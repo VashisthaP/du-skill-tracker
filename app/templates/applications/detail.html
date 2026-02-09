@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Application Detail{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    {% if current_user.is_pmo or current_user.is_evaluator %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('applications.manage') }}">Manage Applications</a></li>
+                    {% else %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('applications.my_applications') }}">My Applications</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item active">Application #{{ application.id }}</li>
+                </ol>
+            </nav>
+
+            <div class="row g-4">
+                <!-- Application Details -->
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <span class="badge bg-{{ application.status_color }} fs-6">
+                                        <i class="{{ application.status_icon }} me-1"></i>{{ application.status_display }}
+                                    </span>
+                                </div>
+                                <small class="text-muted">Applied {{ application.applied_at.strftime('%d %B %Y') if application.applied_at }}</small>
+                            </div>
+
+                            <h3>{{ application.applicant_name }}</h3>
+
+                            <!-- Applicant Details -->
+                            <div class="row g-3 mt-3">
+                                <div class="col-md-6">
+                                    <div class="detail-item">
+                                        <i class="bi bi-person-badge text-purple"></i>
+                                        <div>
+                                            <small class="text-muted">Enterprise ID</small>
+                                            <div class="fw-semibold">{{ application.enterprise_id or 'N/A' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="detail-item">
+                                        <i class="bi bi-clock-history text-purple"></i>
+                                        <div>
+                                            <small class="text-muted">Experience</small>
+                                            <div class="fw-semibold">{{ application.years_of_experience or 0 }} years</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="detail-item">
+                                        <i class="bi bi-folder text-purple"></i>
+                                        <div>
+                                            <small class="text-muted">Current Project</small>
+                                            <div class="fw-semibold">{{ application.current_project or 'Not specified' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="detail-item">
+                                        <i class="bi bi-briefcase text-purple"></i>
+                                        <div>
+                                            <small class="text-muted">Applied For</small>
+                                            <div class="fw-semibold">
+                                                <a href="{{ url_for('demands.detail', demand_id=application.demand_id) }}" class="text-purple">
+                                                    {{ application.demand.project_name if application.demand else 'N/A' }}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if application.skills_text %}
+                            <div class="mt-3">
+                                <small class="text-muted fw-semibold">Skills</small>
+                                <div class="mt-1">
+                                    {% for skill in application.skills_text.split(',') %}
+                                    <span class="skill-tag">{{ skill.strip() }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if application.resume_filename %}
+                            <div class="mt-3">
+                                <a href="{{ url_for('applications.download_resume', application_id=application.id) }}"
+                                   class="btn btn-outline-purple">
+                                    <i class="bi bi-download me-2"></i>Download Resume ({{ application.resume_filename }})
+                                </a>
+                            </div>
+                            {% endif %}
+
+                            {% if application.remarks %}
+                            <div class="mt-3 p-3 bg-light rounded">
+                                <strong><i class="bi bi-chat-left-text me-1"></i>Remarks:</strong>
+                                <p class="mb-0 mt-1">{{ application.remarks }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Status History -->
+                    {% if history %}
+                    <div class="card border-0 shadow-sm mt-4">
+                        <div class="card-header bg-white border-0 pt-3">
+                            <h5 class="card-title mb-0"><i class="bi bi-clock-history text-purple me-2"></i>Status History</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="timeline">
+                                {% for entry in history %}
+                                <div class="timeline-item">
+                                    <div class="timeline-dot bg-purple"></div>
+                                    <div class="timeline-content">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>
+                                                {% if entry.old_status %}
+                                                {{ entry.old_status.replace('_', ' ').title() }} → 
+                                                {% endif %}
+                                                {{ entry.new_status.replace('_', ' ').title() }}
+                                            </strong>
+                                            <small class="text-muted">{{ entry.changed_at.strftime('%d %b %Y %I:%M %p') if entry.changed_at }}</small>
+                                        </div>
+                                        {% if entry.changer %}
+                                        <small class="text-muted">by {{ entry.changer.display_name }}</small>
+                                        {% endif %}
+                                        {% if entry.remarks %}
+                                        <p class="mb-0 mt-1 small">{{ entry.remarks }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Sidebar: Status Update Form (PMO/Evaluator only) -->
+                <div class="col-lg-4">
+                    {% if current_user.is_pmo or current_user.is_evaluator %}
+                    <div class="card border-0 shadow-sm border-start border-4 border-purple">
+                        <div class="card-body">
+                            <h6><i class="bi bi-pencil-square me-2"></i>Update Status</h6>
+                            <form method="POST" action="{{ url_for('applications.update_status', application_id=application.id) }}">
+                                {{ status_form.hidden_tag() }}
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">New Status</label>
+                                    {{ status_form.status(class="form-select form-select-sm") }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Remarks / Feedback</label>
+                                    {{ status_form.remarks(class="form-control form-control-sm", rows=3, placeholder="Optional feedback for the applicant...") }}
+                                </div>
+                                <button type="submit" class="btn btn-accent btn-sm w-100">
+                                    <i class="bi bi-check-lg me-1"></i>Update Status
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

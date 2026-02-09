@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Apply - {{ demand.project_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('demands.list_demands') }}">Demands</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('demands.detail', demand_id=demand.id) }}">{{ demand.project_name }}</a></li>
+                    <li class="breadcrumb-item active">Apply</li>
+                </ol>
+            </nav>
+
+            <!-- Demand Summary -->
+            <div class="card border-0 shadow-sm mb-4 bg-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="mb-1">{{ demand.project_name }}</h5>
+                            <span class="text-muted">{{ demand.du_name }}{% if demand.client_name %} • {{ demand.client_name }}{% endif %}</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-{{ demand.priority_color }}">{{ demand.priority | upper }}</span>
+                            <br>
+                            <small class="text-muted">CL{{ demand.career_level }} • {{ demand.num_positions }} positions</small>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        {% for skill in demand.skills %}
+                        <span class="skill-tag-sm">{{ skill.name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Form -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h3><i class="bi bi-send-check text-purple me-2"></i>Get Evaluated</h3>
+                    <p class="text-muted">Submit your profile for evaluation. The evaluator and demand raiser will be notified via email.</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                {{ form.applicant_name(class="form-control" + (" is-invalid" if form.applicant_name.errors else "")) }}
+                                {% for error in form.applicant_name.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Enterprise ID <span class="text-danger">*</span></label>
+                                {{ form.enterprise_id(class="form-control" + (" is-invalid" if form.enterprise_id.errors else ""), placeholder="e.g., john.doe") }}
+                                {% for error in form.enterprise_id.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Current Project</label>
+                                {{ form.current_project(class="form-control", placeholder="Your current project name") }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Years of Experience <span class="text-danger">*</span></label>
+                                {{ form.years_of_experience(class="form-control" + (" is-invalid" if form.years_of_experience.errors else ""), min=0, max=50) }}
+                                {% for error in form.years_of_experience.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Your Key Skills</label>
+                                {{ form.skills_text(class="form-control", rows=3, placeholder="List your relevant skills, separated by commas (e.g., Python, Azure DevOps, React, SQL)") }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">
+                                    <i class="bi bi-upload me-1"></i>Upload One-Page Resume
+                                </label>
+                                {{ form.resume(class="form-control" + (" is-invalid" if form.resume.errors else ""), accept=".docx,.pptx") }}
+                                {% for error in form.resume.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                                <small class="text-muted">Accepted formats: .docx, .pptx (Max 10MB)</small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ url_for('demands.detail', demand_id=demand.id) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Back
+                            </a>
+                            <button type="submit" class="btn btn-accent btn-lg">
+                                <i class="bi bi-send-check me-2"></i>Submit Application
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

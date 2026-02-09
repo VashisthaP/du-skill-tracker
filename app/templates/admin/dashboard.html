@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <h2 class="page-title mb-4"><i class="bi bi-speedometer2 text-purple me-2"></i>Admin Dashboard</h2>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-purple"><div class="stat-number">{{ user_stats.total }}</div><div class="stat-label">Total Users</div></div></div>
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-blue"><div class="stat-number">{{ demand_stats.total }}</div><div class="stat-label">Total Demands</div></div></div>
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-green"><div class="stat-number">{{ demand_stats.open }}</div><div class="stat-label">Open Demands</div></div></div>
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-amber"><div class="stat-number">{{ demand_stats.critical }}</div><div class="stat-label">Critical</div></div></div>
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-blue"><div class="stat-number">{{ app_stats.total }}</div><div class="stat-label">Applications</div></div></div>
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-green"><div class="stat-number">{{ app_stats.selected }}</div><div class="stat-label">Selected</div></div></div>
+    </div>
+
+    <div class="row g-4">
+        <!-- User Role Distribution -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h5 class="card-title mb-0"><i class="bi bi-people text-purple me-2"></i>User Roles</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="userRolesChart" height="200"></canvas>
+                    <div class="mt-3">
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-purple btn-sm w-100">Manage Users</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Skills -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h5 class="card-title mb-0"><i class="bi bi-fire text-danger me-2"></i>Top Demanded Skills</h5>
+                </div>
+                <div class="card-body">
+                    {% for skill_name, count in top_skills %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="skill-tag">{{ skill_name }}</span>
+                        <span class="badge bg-purple rounded-pill">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                    {% if not top_skills %}
+                    <p class="text-muted text-center">No demand data yet</p>
+                    {% endif %}
+                    <a href="{{ url_for('admin.skills') }}" class="btn btn-outline-purple btn-sm w-100 mt-2">Manage Skills</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Pipeline -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h5 class="card-title mb-0"><i class="bi bi-funnel text-purple me-2"></i>Application Pipeline</h5>
+                </div>
+                <div class="card-body">
+                    <div class="pipeline-stat mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Applied</span><strong>{{ app_stats.applied }}</strong>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-info" data-width="{{ (app_stats.applied / (app_stats.total or 1) * 100) | round }}"></div>
+                        </div>
+                    </div>
+                    <div class="pipeline-stat mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Under Evaluation</span><strong>{{ app_stats.under_evaluation }}</strong>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-warning" data-width="{{ (app_stats.under_evaluation / (app_stats.total or 1) * 100) | round }}"></div>
+                        </div>
+                    </div>
+                    <div class="pipeline-stat mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Selected</span><strong>{{ app_stats.selected }}</strong>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" data-width="{{ (app_stats.selected / (app_stats.total or 1) * 100) | round }}"></div>
+                        </div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Rejected</span><strong>{{ app_stats.rejected }}</strong>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-danger" data-width="{{ (app_stats.rejected / (app_stats.total or 1) * 100) | round }}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Users -->
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between">
+            <h5 class="card-title mb-0"><i class="bi bi-clock-history text-purple me-2"></i>Recent Users</h5>
+            <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-purple">View All</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for user in recent_users %}
+                        <tr>
+                            <td class="fw-semibold">{{ user.display_name }}</td>
+                            <td>{{ user.email }}</td>
+                            <td><span class="badge bg-{{ 'danger' if user.role == 'admin' else 'primary' if user.role == 'pmo' else 'info' if user.role == 'evaluator' else 'secondary' }}">{{ user.display_role }}</span></td>
+                            <td><small class="text-muted">{{ user.created_at.strftime('%d %b %Y') if user.created_at }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="userRolesData">[{{ user_stats.admins }}, {{ user_stats.pmo }}, {{ user_stats.evaluators }}, {{ user_stats.resources }}]</script>
+<script>
+// Apply widths from data attributes to progress bars
+document.querySelectorAll('.progress-bar[data-width]').forEach(function(bar) {
+    bar.style.width = bar.getAttribute('data-width') + '%';
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('userRolesChart');
+    if (ctx) {
+        var roleData = JSON.parse(document.getElementById('userRolesData').textContent);
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Admin', 'PMO', 'Evaluator', 'Resource'],
+                datasets: [{
+                    data: roleData,
+                    backgroundColor: ['#DC3545', '#A100FF', '#0DCAF0', '#6C757D'],
+                    borderWidth: 2, borderColor: '#fff'
+                }]
+            },
+            options: { responsive: true, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+        });
+    }
+});
+</script>
+{% endblock %}

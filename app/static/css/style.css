@@ -1,0 +1,292 @@
+/* ============================================================
+   SkillHive – Accenture-branded Design System
+   Primary: #A100FF | Dark: #1A0033 | Accent: #7B00E0
+   Font: Inter | Framework: Bootstrap 5.3
+   ============================================================ */
+
+/* ---- CSS Variables ---- */
+:root {
+    --purple: #A100FF;
+    --purple-dark: #7B00E0;
+    --purple-deeper: #1A0033;
+    --purple-light: #F3E5FF;
+    --purple-hover: #8A00DB;
+    --accent: #00BAFF;
+    --gradient: linear-gradient(135deg, #A100FF 0%, #7B00E0 50%, #4A00A0 100%);
+    --gradient-dark: linear-gradient(135deg, #1A0033 0%, #2D005C 100%);
+    --bs-body-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ---- Global ---- */
+body { background: #F7F5FA; color: #2D2D2D; }
+a { color: var(--purple); }
+a:hover { color: var(--purple-hover); }
+.text-purple { color: var(--purple) !important; }
+.bg-purple  { background-color: var(--purple) !important; }
+
+/* ---- Typography ---- */
+.page-title { font-weight: 700; letter-spacing: -0.3px; }
+.gt { color: var(--purple); font-weight: 700; }
+
+/* ---- Buttons ---- */
+.btn-accent {
+    background: var(--gradient); color: #fff; border: none;
+    font-weight: 600; letter-spacing: 0.3px;
+    transition: box-shadow .2s, transform .15s;
+}
+.btn-accent:hover { color: #fff; box-shadow: 0 6px 24px rgba(161,0,255,.35); transform: translateY(-1px); }
+
+.btn-purple { background: var(--purple); color: #fff; border: none; }
+.btn-purple:hover { background: var(--purple-hover); color: #fff; }
+
+.btn-outline-purple { color: var(--purple); border-color: var(--purple); }
+.btn-outline-purple:hover { background: var(--purple); color: #fff; }
+
+/* ---- Navbar ---- */
+#mainNav,
+.navbar-skillhive {
+    background: var(--gradient-dark) !important; backdrop-filter: blur(10px);
+    border-bottom: 3px solid var(--purple);
+    padding: .6rem 0;
+}
+#mainNav .nav-link,
+.navbar-skillhive .nav-link { color: rgba(255,255,255,.8) !important; font-weight: 500; font-size: .9rem; transition: color .15s; }
+#mainNav .nav-link:hover,
+#mainNav .nav-link.active,
+.navbar-skillhive .nav-link:hover,
+.navbar-skillhive .nav-link.active { color: #fff !important; }
+.brand-text,
+.navbar-brand-text { font-weight: 800; font-size: 1.25rem; color: #fff !important; letter-spacing: -0.5px; }
+.brand-text .gt,
+.navbar-brand-text .gt { color: var(--purple-light); }
+.brand-text small { color: rgba(255,255,255,.6) !important; }
+.brand-icon { font-size: 1.5rem; }
+
+.user-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--purple); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .85rem;
+}
+
+/* ---- Hero Section ---- */
+.hero-section {
+    background: var(--gradient-dark);
+    color: #fff; padding: 5rem 0;
+    position: relative; overflow: hidden;
+}
+.hero-section::before {
+    content: '>'; position: absolute; right: -60px; top: -40px;
+    font-size: 28rem; font-weight: 800; color: rgba(161,0,255,.08);
+    line-height: 1; pointer-events: none;
+}
+.hero-title { font-size: 3rem; font-weight: 800; line-height: 1.15; }
+.hero-subtitle { font-size: 1.15rem; color: rgba(255,255,255,.75); max-width: 540px; }
+
+/* ---- Stat Cards ---- */
+.stat-card {
+    background: #fff; border-radius: 12px; padding: 1.2rem;
+    text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    transition: transform .15s;
+}
+.stat-card:hover { transform: translateY(-3px); }
+.stat-number { font-size: 2rem; font-weight: 800; line-height: 1.2; }
+.stat-label  { font-size: .8rem; color: #6c757d; font-weight: 500; margin-top: 2px; }
+.stat-card-purple .stat-number { color: var(--purple); }
+.stat-card-blue   .stat-number { color: #0D6EFD; }
+.stat-card-green  .stat-number { color: #198754; }
+.stat-card-amber  .stat-number { color: #FFC107; }
+
+/* ---- Skill Tags ---- */
+.skill-tag {
+    display: inline-block; background: var(--purple-light); color: var(--purple);
+    padding: 3px 12px; border-radius: 50px; font-size: .8rem;
+    font-weight: 600; margin: 2px 3px; white-space: nowrap;
+}
+.skill-tag-sm {
+    display: inline-block; background: var(--purple-light); color: var(--purple-dark);
+    padding: 2px 10px; border-radius: 50px; font-size: .72rem;
+    font-weight: 500; margin: 1px 2px;
+}
+
+/* ---- Demand Cards ---- */
+.demand-card {
+    border-radius: 12px; transition: box-shadow .2s, transform .15s;
+    overflow: hidden;
+}
+.demand-card:hover { box-shadow: 0 8px 30px rgba(161,0,255,.12); transform: translateY(-3px); }
+.card-status-bar { height: 4px; }
+.application-card { border-radius: 12px; overflow: hidden; }
+
+/* ---- Detail Items ---- */
+.detail-item {
+    display: flex; align-items: flex-start; gap: .6rem;
+    padding: .5rem 0;
+}
+.detail-item i { font-size: 1.2rem; margin-top: 2px; }
+
+/* ---- Status Progress Steps ---- */
+.status-progress { display: flex; align-items: center; justify-content: space-between; }
+.status-step { text-align: center; flex: 0 0 auto; }
+.status-step small { display: block; font-size: .65rem; margin-top: 4px; color: #6c757d; }
+.step-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #dee2e6; margin: 0 auto;
+    transition: background .2s;
+}
+.status-step.active .step-dot { background: var(--purple); box-shadow: 0 0 0 3px rgba(161,0,255,.25); }
+.status-step.rejected-step .step-dot { background: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,.25); }
+.status-line { flex: 1; height: 3px; background: #dee2e6; margin: 0 4px; border-radius: 2px; }
+.status-line.active { background: var(--purple); }
+.status-line.rejected-line { background: #dc3545; }
+
+/* ---- Timeline ---- */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before { content: ''; position: absolute; left: 6px; top: 4px; bottom: 4px; width: 2px; background: #e9ecef; }
+.timeline-item { position: relative; padding-bottom: 1.2rem; }
+.timeline-dot {
+    position: absolute; left: -28px; top: 4px;
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid #fff; box-shadow: 0 0 0 2px var(--purple);
+}
+.timeline-content { padding-left: 4px; }
+
+/* ---- Skill Cloud (landing) ---- */
+.skill-cloud { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 1rem 0; }
+.skill-cloud-tag {
+    display: inline-block; padding: 6px 18px; border-radius: 50px;
+    font-weight: 600; cursor: default; transition: transform .15s, box-shadow .15s;
+}
+.skill-cloud-tag:hover { transform: scale(1.08); box-shadow: 0 4px 16px rgba(161,0,255,.2); }
+.skill-cloud-sm { font-size: .75rem; background: #F3E5FF; color: #7B00E0; }
+.skill-cloud-md { font-size: .9rem;  background: #E0C8FF; color: #5C00B0; }
+.skill-cloud-lg { font-size: 1.1rem; background: #C99EFF; color: #3D0080; }
+.skill-cloud-xl { font-size: 1.3rem; background: var(--purple); color: #fff; }
+
+/* ---- Cards general ---- */
+.card { border-radius: 12px; }
+
+/* ---- Footer ---- */
+.footer-dark,
+.footer-skillhive {
+    background: var(--gradient-dark) !important; color: rgba(255,255,255,.8);
+    padding: 2rem 0; font-size: .85rem;
+}
+.footer-dark a,
+.footer-skillhive a { color: rgba(255,255,255,.8); text-decoration: none; }
+.footer-dark a:hover,
+.footer-skillhive a:hover { color: #fff; }
+.footer-dark strong,
+.footer-skillhive strong { color: #fff; }
+.text-accent { color: var(--purple) !important; }
+
+/* ---- Priority Colors ---- */
+.bg-critical { background-color: #dc3545 !important; }
+.bg-high     { background-color: #fd7e14 !important; }
+.bg-medium   { background-color: #ffc107 !important; color: #000 !important; }
+.bg-low      { background-color: #6c757d !important; }
+.bg-open     { background-color: #198754 !important; }
+.bg-in_progress, .bg-in-progress { background-color: #0d6efd !important; }
+.bg-filled   { background-color: #6c757d !important; }
+.bg-cancelled { background-color: #adb5bd !important; }
+
+/* Status colors */
+.bg-applied          { background-color: #0dcaf0 !important; }
+.bg-under_evaluation { background-color: #ffc107 !important; color: #000 !important; }
+.bg-selected         { background-color: #198754 !important; }
+.bg-rejected         { background-color: #dc3545 !important; }
+
+/* ---- How-It-Works Steps ---- */
+.step-circle {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: var(--gradient); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 800; margin: 0 auto 1rem;
+    box-shadow: 0 4px 16px rgba(161,0,255,.3);
+}
+
+/* ---- Quick Actions ---- */
+.quick-action {
+    display: flex; align-items: center; padding: .6rem .8rem;
+    border-radius: 8px; text-decoration: none; color: #2D2D2D;
+    transition: background .15s;
+    font-weight: 500;
+}
+.quick-action:hover { background: var(--purple-light); color: var(--purple); }
+.quick-action i { font-size: 1.1rem; margin-right: .6rem; color: var(--purple); }
+
+/* ---- Pagination ---- */
+.page-link { color: var(--purple); }
+.page-item.active .page-link { background: var(--purple); border-color: var(--purple); }
+
+/* ---- Form ---- */
+.form-control:focus, .form-select:focus { border-color: var(--purple); box-shadow: 0 0 0 .2rem rgba(161,0,255,.15); }
+
+/* ---- Badge ---- */
+.badge.bg-purple { background-color: var(--purple) !important; }
+
+/* ---- Dark Purple Sections ---- */
+.bg-dark-purple { background: var(--gradient-dark); }
+.section-title { font-weight: 700; }
+
+/* ---- Skill Cloud Container (hero) ---- */
+.skill-cloud-container {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 1rem;
+}
+.skill-cloud-container .skill-cloud-tag {
+    background: rgba(161, 0, 255, 0.15); color: #E0C8FF;
+    padding: 6px 16px; border-radius: 50px;
+    font-weight: 600; font-size: 0.9rem;
+}
+
+/* ---- Hero extras ---- */
+.hero-badge {
+    display: inline-block; background: rgba(161, 0, 255, 0.25); color: #E0C8FF;
+    padding: 6px 16px; border-radius: 50px; font-size: .85rem; font-weight: 600;
+}
+.hero-stat { text-align: center; padding: 0 1rem; }
+.hero-stat-number { font-size: 1.8rem; font-weight: 800; color: #fff; }
+.hero-stat-label { font-size: .75rem; color: rgba(255,255,255,.6); }
+.text-accent-glow { color: #C580FF; }
+.hero-gt-symbol {
+    position: absolute; right: -40px; bottom: -80px;
+    font-size: 20rem; font-weight: 800; color: rgba(161,0,255,.06);
+    line-height: 1; pointer-events: none;
+}
+.min-vh-75 { min-height: 75vh; }
+
+/* ---- How It Works Cards ---- */
+.how-it-works-card {
+    background: #fff; border-radius: 12px; padding: 2rem 1.2rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06); height: 100%;
+    transition: transform .15s;
+}
+.how-it-works-card:hover { transform: translateY(-4px); }
+.how-step-number {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--gradient); color: #fff;
+    font-weight: 800; font-size: .9rem; margin-bottom: .8rem;
+}
+.how-icon { font-size: 2rem; color: var(--purple); margin-bottom: .5rem; }
+
+/* ---- Demand Cards (landing) ---- */
+.demand-card-header { margin-bottom: .5rem; }
+.demand-card-title { font-weight: 700; font-size: 1.05rem; margin-bottom: .4rem; }
+.demand-card-meta { font-size: .8rem; color: #6c757d; margin-bottom: .6rem; }
+.demand-card-meta span { margin-right: .8rem; }
+.demand-card-skills { margin-bottom: .6rem; }
+.demand-card-footer { display: flex; gap: 1rem; font-size: .8rem; }
+.demand-card {
+    background: #fff; border-radius: 12px; padding: 1.2rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06); height: 100%;
+    transition: transform .15s, box-shadow .15s;
+}
+.demand-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(161,0,255,.12); }
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+    .hero-title { font-size: 2rem; }
+    .stat-number { font-size: 1.5rem; }
+    .min-vh-75 { min-height: auto; padding: 2rem 0; }
+}

@@ -1,0 +1,44 @@
+# =====================================================
+# SkillHive - Python Dependencies
+# Install: pip install -r requirements.txt
+# =====================================================
+
+# ---------- Flask Core ----------
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# ---------- Database ORM ----------
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.5
+
+# ---------- Authentication ----------
+Flask-Login==0.6.3
+msal==1.25.0
+
+# ---------- Forms & Validation ----------
+Flask-WTF==1.2.1
+WTForms==3.1.1
+email-validator==2.1.0
+
+# ---------- Email ----------
+Flask-Mail==0.9.1
+
+# ---------- Excel Export ----------
+openpyxl==3.1.2
+
+# ---------- Azure Services ----------
+azure-storage-blob==12.19.0
+azure-identity==1.15.0
+
+# ---------- Monitoring (Application Insights) ----------
+# opencensus removed – incompatible with Flask 3.x
+# Use azure-monitor-opentelemetry for prod monitoring if needed
+
+# ---------- Database Drivers ----------
+psycopg2-binary==2.9.9
+
+# ---------- Production WSGI Server ----------
+gunicorn==21.1.0
+
+# ---------- Environment ----------
+python-dotenv==1.0.0

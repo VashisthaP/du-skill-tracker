@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Skill Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <h2 class="page-title mb-4"><i class="bi bi-tags text-purple me-2"></i>Skill Management</h2>
+
+    <!-- Add Skill -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.add_skill') }}" class="row g-2 align-items-end">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Skill Name</label>
+                    <input type="text" name="name" class="form-control form-control-sm" placeholder="e.g., Kubernetes" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Category</label>
+                    <select name="category" class="form-select form-select-sm">
+                        <option>Programming Language</option>
+                        <option>Cloud Platform</option>
+                        <option>DevOps</option>
+                        <option>Frontend Framework</option>
+                        <option>Backend Framework</option>
+                        <option>Data & AI</option>
+                        <option>Database</option>
+                        <option>Enterprise</option>
+                        <option>Testing</option>
+                        <option>Security</option>
+                        <option>Methodology</option>
+                        <option>Architecture</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-accent btn-sm w-100"><i class="bi bi-plus-lg me-1"></i>Add Skill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Skills Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr><th>Skill</th><th>Category</th><th>Demands Using</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for skill in skills %}
+                        <tr>
+                            <td class="fw-semibold">{{ skill.name }}</td>
+                            <td><span class="badge bg-light text-dark">{{ skill.category or 'Other' }}</span></td>
+                            <td>{{ skill.demands.count() }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('admin.delete_skill', skill_id=skill.id) }}"
+                                      onsubmit="return confirm('Delete skill {{ skill.name }}?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+# =====================================================
+# SkillHive - .gitignore
+# Python + Flask + Azure specific ignores
+# =====================================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+.Python
+develop-eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.manifest
+*.spec
+
+# ---------- Virtual Environments ----------
+env/
+venv/
+.venv/
+ENV/
+
+# ---------- Environment Variables ----------
+.env
+*.env.local
+.env.production
+
+# ---------- IDE / Editors ----------
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# ---------- OS Generated ----------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ---------- Uploads (resumes stored here in dev mode) ----------
+app/uploads/
+uploads/
+
+# ---------- SQLite Database (local dev) ----------
+*.db
+*.sqlite3
+instance/
+
+# ---------- Azure ----------
+.azure/
+local.settings.json
+
+# ---------- Logs ----------
+*.log
+logs/
+
+# ---------- Testing / Coverage ----------
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+.tox/
+nosetests.xml
+coverage.xml
+
+# ---------- Distribution ----------
+*.tar.gz
+*.whl

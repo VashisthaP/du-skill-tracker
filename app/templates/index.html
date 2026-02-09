@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+<!-- =====================================================
+     HERO SECTION - Full-width Accenture-styled gradient
+====================================================== -->
+<section class="hero-section">
+    <div class="hero-particles" id="heroParticles"></div>
+    <div class="container position-relative">
+        <div class="row align-items-center min-vh-75">
+            <div class="col-lg-7">
+                <div class="hero-badge mb-3">
+                    <i class="bi bi-lightning-charge-fill me-1"></i>
+                    DU Demand & Supply Portal
+                </div>
+                <h1 class="hero-title">
+                    Find the <span class="text-accent-glow">Right Talent</span>
+                    <br>for Every Project
+                </h1>
+                <p class="hero-subtitle">
+                    SkillHive connects project demands with skilled resources in your Delivery Unit.
+                    PMO teams raise demands, resources get evaluated, and projects get staffed — all in one place.
+                </p>
+                <div class="d-flex flex-wrap gap-3 mt-4">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-accent btn-lg px-4">
+                        <i class="bi bi-microsoft me-2"></i>Sign In to Get Started
+                    </a>
+                    <a href="#open-demands" class="btn btn-outline-light btn-lg px-4">
+                        <i class="bi bi-eye me-2"></i>View Open Demands
+                    </a>
+                </div>
+                <!-- Quick Stats -->
+                <div class="row mt-5 g-3">
+                    <div class="col-auto">
+                        <div class="hero-stat">
+                            <div class="hero-stat-number">{{ stats.open_demands }}</div>
+                            <div class="hero-stat-label">Open Demands</div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="hero-stat">
+                            <div class="hero-stat-number">{{ stats.total_positions }}</div>
+                            <div class="hero-stat-label">Positions Available</div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="hero-stat">
+                            <div class="hero-stat-number">{{ stats.total_skills }}</div>
+                            <div class="hero-stat-label">Skills Tracked</div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="hero-stat">
+                            <div class="hero-stat-number">{{ stats.filled_positions }}</div>
+                            <div class="hero-stat-label">Positions Filled</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5 d-none d-lg-block">
+                <!-- Skill Cloud Visualization -->
+                <div class="skill-cloud-container" id="heroSkillCloud">
+                    {% for skill in trending_skills %}
+                    <span class="skill-cloud-tag size-{{ (skill.count * 3) | int if skill.count < 5 else 15 }}"
+                          style="--delay: {{ loop.index * 0.1 }}s">
+                        {{ skill.name }}
+                    </span>
+                    {% endfor %}
+                    {% if not trending_skills %}
+                    <span class="skill-cloud-tag size-12">Python</span>
+                    <span class="skill-cloud-tag size-10">Azure</span>
+                    <span class="skill-cloud-tag size-8">React</span>
+                    <span class="skill-cloud-tag size-11">Java</span>
+                    <span class="skill-cloud-tag size-9">Gen AI</span>
+                    <span class="skill-cloud-tag size-7">Kubernetes</span>
+                    <span class="skill-cloud-tag size-10">.NET</span>
+                    <span class="skill-cloud-tag size-6">SQL</span>
+                    <span class="skill-cloud-tag size-9">Power BI</span>
+                    <span class="skill-cloud-tag size-8">DevOps</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Accenture ">" decorative element -->
+    <div class="hero-gt-symbol">&gt;</div>
+</section>
+
+<!-- =====================================================
+     HOW IT WORKS SECTION
+====================================================== -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="section-title">How <strong>SkillHive</strong> Works</h2>
+            <p class="text-muted">A streamlined workflow connecting project demands with talented resources</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="how-it-works-card text-center">
+                    <div class="how-step-number">1</div>
+                    <div class="how-icon"><i class="bi bi-megaphone-fill"></i></div>
+                    <h5>PMO Raises Demand</h5>
+                    <p class="text-muted small">Project Management team lists the skill requirements, career level, and evaluator details.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="how-it-works-card text-center">
+                    <div class="how-step-number">2</div>
+                    <div class="how-icon"><i class="bi bi-search"></i></div>
+                    <h5>Resources Browse</h5>
+                    <p class="text-muted small">Resources view open demands, filter by skills, and find matching opportunities.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="how-it-works-card text-center">
+                    <div class="how-step-number">3</div>
+                    <div class="how-icon"><i class="bi bi-send-check-fill"></i></div>
+                    <h5>Apply for Evaluation</h5>
+                    <p class="text-muted small">Resources submit their profile and one-page resume. Evaluators get notified via email.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="how-it-works-card text-center">
+                    <div class="how-step-number">4</div>
+                    <div class="how-icon"><i class="bi bi-check-circle-fill"></i></div>
+                    <h5>Track & Select</h5>
+                    <p class="text-muted small">Track application status: Applied → Under Evaluation → Selected. Everyone stays updated.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- =====================================================
+     OPEN DEMANDS PREVIEW
+====================================================== -->
+<section class="py-5" id="open-demands">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="section-title mb-0">Latest Open Demands</h2>
+                <p class="text-muted">Most recent opportunities in the Delivery Unit</p>
+            </div>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-purple">
+                Sign In to View All <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        {% if latest_demands %}
+        <div class="row g-4">
+            {% for demand in latest_demands %}
+            <div class="col-md-6 col-lg-4">
+                <div class="demand-card">
+                    <div class="demand-card-header">
+                        <span class="badge bg-{{ demand.priority_color }} me-2">{{ demand.priority | upper }}</span>
+                        <span class="badge bg-{{ demand.status_color }}">{{ demand.status_display }}</span>
+                    </div>
+                    <h5 class="demand-card-title">{{ demand.project_name }}</h5>
+                    <div class="demand-card-meta">
+                        <span><i class="bi bi-building me-1"></i>{{ demand.du_name }}</span>
+                        {% if demand.client_name %}
+                        <span><i class="bi bi-briefcase me-1"></i>{{ demand.client_name }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="demand-card-skills">
+                        {% for skill in demand.skills[:5] %}
+                        <span class="skill-tag">{{ skill.name }}</span>
+                        {% endfor %}
+                        {% if demand.skills | length > 5 %}
+                        <span class="skill-tag more">+{{ demand.skills | length - 5 }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="demand-card-footer">
+                        <span class="text-muted small">
+                            <i class="bi bi-mortarboard me-1"></i>CL{{ demand.career_level }}
+                        </span>
+                        <span class="text-muted small">
+                            <i class="bi bi-people me-1"></i>{{ demand.num_positions }} position{{ 's' if demand.num_positions > 1 }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <h4 class="text-muted mt-3">No open demands yet</h4>
+            <p class="text-muted">Check back soon for new opportunities!</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- =====================================================
+     SKILL TRENDING SECTION
+====================================================== -->
+{% if trending_skills %}
+<section class="py-5 bg-dark-purple text-white">
+    <div class="container">
+        <div class="text-center mb-4">
+            <h2 class="section-title text-white">🔥 Trending Skills</h2>
+            <p class="text-white-50">Skills currently in highest demand across projects</p>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <canvas id="trendingSkillsChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="trendingSkillsData">{{ trending_skills | tojson | safe }}</script>
+<script>
+// Initialize trending skills chart on the landing page
+document.addEventListener('DOMContentLoaded', function() {
+    const chartCanvas = document.getElementById('trendingSkillsChart');
+    if (chartCanvas) {
+        const skillData = JSON.parse(document.getElementById('trendingSkillsData').textContent);
+
+        new Chart(chartCanvas, {
+            type: 'bar',
+            data: {
+                labels: skillData.map(s => s.name),
+                datasets: [{
+                    label: 'Number of Open Demands',
+                    data: skillData.map(s => s.count),
+                    backgroundColor: skillData.map((_, i) =>
+                        `rgba(161, 0, 255, ${0.9 - (i * 0.05)})`
+                    ),
+                    borderColor: 'rgba(161, 0, 255, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                },
+                scales: {
+                    x: {
+                        ticks: { color: 'rgba(255,255,255,0.7)', stepSize: 1 },
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                    },
+                    y: {
+                        ticks: { color: 'rgba(255,255,255,0.9)', font: { size: 13 } },
+                        grid: { display: false },
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% block title %}{{ demand.project_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('demands.list_demands') }}">Demands</a></li>
+            <li class="breadcrumb-item active">{{ demand.project_name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- =====================================================
+             DEMAND DETAILS (Main Column)
+        ====================================================== -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="badge bg-{{ demand.priority_color }} me-2">{{ demand.priority | upper }}</span>
+                            <span class="badge bg-{{ demand.status_color }}">{{ demand.status_display }}</span>
+                        </div>
+                        {% if current_user.is_pmo %}
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="bi bi-gear me-1"></i>Actions
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ url_for('demands.edit', demand_id=demand.id) }}">
+                                    <i class="bi bi-pencil me-2"></i>Edit Demand</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if demand.status == 'open' %}
+                                <li><form method="POST" action="{{ url_for('demands.update_status', demand_id=demand.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="status" value="in_progress">
+                                    <button class="dropdown-item"><i class="bi bi-play-fill me-2"></i>Mark In Progress</button>
+                                </form></li>
+                                {% endif %}
+                                {% if demand.status in ['open', 'in_progress'] %}
+                                <li><form method="POST" action="{{ url_for('demands.update_status', demand_id=demand.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="status" value="filled">
+                                    <button class="dropdown-item text-success"><i class="bi bi-check-circle me-2"></i>Mark as Filled</button>
+                                </form></li>
+                                <li><form method="POST" action="{{ url_for('demands.update_status', demand_id=demand.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="status" value="cancelled">
+                                    <button class="dropdown-item text-danger"><i class="bi bi-x-circle me-2"></i>Cancel Demand</button>
+                                </form></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <h2 class="mb-1">{{ demand.project_name }}</h2>
+                    {% if demand.project_code %}
+                    <p class="text-muted mb-3">Project Code: {{ demand.project_code }}</p>
+                    {% endif %}
+
+                    <!-- Skills -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">Required Skills</h6>
+                        {% for skill in demand.skills %}
+                        <span class="skill-tag">{{ skill.name }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Details Grid -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="detail-item">
+                                <i class="bi bi-building text-purple"></i>
+                                <div>
+                                    <small class="text-muted">DU Name</small>
+                                    <div class="fw-semibold">{{ demand.du_name }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% if demand.client_name %}
+                        <div class="col-md-6">
+                            <div class="detail-item">
+                                <i class="bi bi-briefcase text-purple"></i>
+                                <div>
+                                    <small class="text-muted">Client</small>
+                                    <div class="fw-semibold">{{ demand.client_name }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-6">
+                            <div class="detail-item">
+                                <i class="bi bi-mortarboard text-purple"></i>
+                                <div>
+                                    <small class="text-muted">Career Level</small>
+                                    <div class="fw-semibold">{{ demand.career_level_display }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="detail-item">
+                                <i class="bi bi-people text-purple"></i>
+                                <div>
+                                    <small class="text-muted">Positions</small>
+                                    <div class="fw-semibold">{{ demand.num_positions }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% if demand.start_date %}
+                        <div class="col-md-6">
+                            <div class="detail-item">
+                                <i class="bi bi-calendar-event text-purple"></i>
+                                <div>
+                                    <small class="text-muted">Start Date</small>
+                                    <div class="fw-semibold">{{ demand.start_date.strftime('%d %B %Y') }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if demand.end_date %}
+                        <div class="col-md-6">
+                            <div class="detail-item">
+                                <i class="bi bi-calendar-check text-purple"></i>
+                                <div>
+                                    <small class="text-muted">End Date</small>
+                                    <div class="fw-semibold">{{ demand.end_date.strftime('%d %B %Y') }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    {% if demand.description %}
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">Job Description</h6>
+                        <div class="bg-light p-3 rounded">{{ demand.description | nl2br }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if demand.additional_notes %}
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">Additional Notes</h6>
+                        <div class="bg-light p-3 rounded">{{ demand.additional_notes | nl2br }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Created Info -->
+                    <div class="text-muted small">
+                        <i class="bi bi-clock me-1"></i>
+                        Created {{ demand.created_at.strftime('%d %B %Y at %I:%M %p') if demand.created_at else 'N/A' }}
+                        {% if demand.creator %}
+                        by {{ demand.creator.display_name }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- =====================================================
+                 APPLICATIONS TABLE (PMO / Evaluator view)
+            ====================================================== -->
+            {% if (current_user.is_pmo or current_user.is_evaluator) and applications %}
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-people-fill text-purple me-2"></i>
+                        Applications ({{ applications | length }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Applicant</th>
+                                    <th>Enterprise ID</th>
+                                    <th>Experience</th>
+                                    <th>Resume</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in applications %}
+                                <tr>
+                                    <td class="fw-semibold">{{ app.applicant_name }}</td>
+                                    <td>{{ app.enterprise_id or '-' }}</td>
+                                    <td>{{ app.years_of_experience or 0 }} yrs</td>
+                                    <td>
+                                        {% if app.resume_filename %}
+                                        <a href="{{ url_for('applications.download_resume', application_id=app.id) }}"
+                                           class="btn btn-sm btn-outline-purple">
+                                            <i class="bi bi-download me-1"></i>{{ app.resume_filename[-15:] }}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">None</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ app.status_color }}">{{ app.status_display }}</span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('applications.detail', application_id=app.id) }}"
+                                           class="btn btn-sm btn-outline-secondary">
+                                            Review
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- =====================================================
+             SIDEBAR
+        ====================================================== -->
+        <div class="col-lg-4">
+            <!-- Apply Button -->
+            {% if demand.is_open %}
+                {% if has_applied %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body text-center py-4">
+                        <i class="bi bi-check-circle-fill text-success display-4"></i>
+                        <h5 class="mt-2 text-success">Already Applied</h5>
+                        <p class="text-muted">You have already submitted your application.</p>
+                        <a href="{{ url_for('applications.my_applications') }}" class="btn btn-outline-purple btn-sm">
+                            Track Status <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="card border-0 shadow-sm mb-4 border-start border-4 border-purple">
+                    <div class="card-body text-center py-4">
+                        <h5>Interested in this role?</h5>
+                        <p class="text-muted small">Submit your profile and get evaluated by the project team.</p>
+                        <a href="{{ url_for('applications.apply', demand_id=demand.id) }}"
+                           class="btn btn-accent btn-lg w-100">
+                            <i class="bi bi-send-check me-2"></i>Get Evaluated
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-lock-fill text-muted display-4"></i>
+                    <h5 class="mt-2 text-muted">Applications Closed</h5>
+                    <p class="text-muted small">This demand is {{ demand.status_display.lower() }}.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Evaluator Info -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-person-check text-purple me-2"></i>Evaluator
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if demand.evaluator_name %}
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="user-avatar me-3" style="width:40px;height:40px;font-size:1rem;">
+                            {{ demand.evaluator_name[0] | upper }}
+                        </div>
+                        <div>
+                            <div class="fw-semibold">{{ demand.evaluator_name }}</div>
+                            {% if demand.evaluator_email %}
+                            <small class="text-muted">{{ demand.evaluator_email }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if demand.evaluator_contact %}
+                    <small class="text-muted"><i class="bi bi-telephone me-1"></i>{{ demand.evaluator_contact }}</small>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted mb-0">No evaluator assigned</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Application Stats -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-bar-chart text-purple me-2"></i>Application Stats
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Total Applications</span>
+                        <span class="fw-bold">{{ demand.application_count }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Positions</span>
+                        <span class="fw-bold">{{ demand.num_positions }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Posted</span>
+                        <span class="fw-bold">{{ demand.created_at.strftime('%d %b %Y') if demand.created_at else 'N/A' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

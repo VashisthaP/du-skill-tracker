@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Demand' if is_edit else 'Raise New Demand' }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('demands.list_demands') }}">Demands</a></li>
+                    <li class="breadcrumb-item active">{{ 'Edit' if is_edit else 'Raise New Demand' }}</li>
+                </ol>
+            </nav>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <h3>
+                        <i class="bi bi-{{ 'pencil' if is_edit else 'plus-circle' }} text-purple me-2"></i>
+                        {{ 'Edit Demand' if is_edit else 'Raise New Demand' }}
+                    </h3>
+                    <p class="text-muted">{{ 'Update the demand details.' if is_edit else 'Fill in the project details and required skills.' }}</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" id="demandForm" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <!-- ===== Project Information ===== -->
+                        <h5 class="section-divider"><i class="bi bi-folder me-2"></i>Project Information</h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Project Name <span class="text-danger">*</span></label>
+                                {{ form.project_name(class="form-control" + (" is-invalid" if form.project_name.errors else ""), placeholder="e.g., Cloud Migration - Phase 2") }}
+                                {% for error in form.project_name.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Project Code</label>
+                                {{ form.project_code(class="form-control", placeholder="e.g., PRJ-2026-001") }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">DU Name <span class="text-danger">*</span></label>
+                                {{ form.du_name(class="form-control" + (" is-invalid" if form.du_name.errors else ""), placeholder="e.g., Technology - Cloud") }}
+                                {% for error in form.du_name.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Client Name</label>
+                                {{ form.client_name(class="form-control", placeholder="e.g., Global Enterprises Inc.") }}
+                            </div>
+                        </div>
+
+                        <!-- ===== Skills & Requirements ===== -->
+                        <h5 class="section-divider mt-4"><i class="bi bi-stars me-2"></i>Skills & Requirements</h5>
+
+                        <div class="row g-3">
+                            <!-- Skills Tag Input -->
+                            <div class="col-12">
+                                <label class="form-label">Required Skills <span class="text-danger">*</span></label>
+                                {{ form.skills(id="skillsHidden") }}
+                                <div class="skill-tag-input-container" id="skillTagContainer">
+                                    <div id="skillTags" class="d-flex flex-wrap gap-1 mb-2"></div>
+                                    <input type="text" id="skillInput" class="form-control"
+                                           placeholder="Type a skill and press Enter (e.g., Python, Azure, React)"
+                                           autocomplete="off" list="skillSuggestions">
+                                    <datalist id="skillSuggestions">
+                                        {% for skill in all_skills %}
+                                        <option value="{{ skill.name }}">
+                                        {% endfor %}
+                                    </datalist>
+                                </div>
+                                {% if form.skills.errors %}
+                                <div class="text-danger small mt-1">{{ form.skills.errors[0] }}</div>
+                                {% endif %}
+                                <small class="text-muted">Type a skill name and press Enter or comma to add.</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Career Level <span class="text-danger">*</span></label>
+                                {{ form.career_level(class="form-select") }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Number of Positions <span class="text-danger">*</span></label>
+                                {{ form.num_positions(class="form-control" + (" is-invalid" if form.num_positions.errors else ""), min=1) }}
+                                {% for error in form.num_positions.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Priority <span class="text-danger">*</span></label>
+                                {{ form.priority(class="form-select") }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Start Date</label>
+                                {{ form.start_date(class="form-control", type="date") }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End Date</label>
+                                {{ form.end_date(class="form-control", type="date") }}
+                                {% for error in form.end_date.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- ===== Evaluator Information ===== -->
+                        <h5 class="section-divider mt-4"><i class="bi bi-person-check me-2"></i>Evaluator Information</h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Evaluator Name <span class="text-danger">*</span></label>
+                                {{ form.evaluator_name(class="form-control" + (" is-invalid" if form.evaluator_name.errors else ""), placeholder="e.g., Priya Sharma") }}
+                                {% for error in form.evaluator_name.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Evaluator Email <span class="text-danger">*</span></label>
+                                {{ form.evaluator_email(class="form-control" + (" is-invalid" if form.evaluator_email.errors else ""), placeholder="priya.sharma@accenture.com") }}
+                                {% for error in form.evaluator_email.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Contact Number</label>
+                                {{ form.evaluator_contact(class="form-control", placeholder="+91 98765 43210") }}
+                            </div>
+                        </div>
+
+                        <!-- ===== Description ===== -->
+                        <h5 class="section-divider mt-4"><i class="bi bi-file-text me-2"></i>Description</h5>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Job Description</label>
+                                {{ form.description(class="form-control", rows=5, placeholder="Describe the role, responsibilities, and expectations...") }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Additional Notes</label>
+                                {{ form.additional_notes(class="form-control", rows=3, placeholder="Any additional information, certifications required, etc.") }}
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                            <a href="{{ url_for('demands.list_demands') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-accent btn-lg">
+                                <i class="bi bi-{{ 'check-lg' if is_edit else 'send-check' }} me-2"></i>
+                                {{ 'Update Demand' if is_edit else 'Raise Demand' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// =====================================================
+// SKILL TAG INPUT
+// Allows PMO to type skills and add them as tags
+// =====================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const skillInput = document.getElementById('skillInput');
+    const skillTags = document.getElementById('skillTags');
+    const skillsHidden = document.getElementById('skillsHidden');
+
+    // Initialize with existing skills (for edit mode)
+    let currentSkills = [];
+    const existingValue = skillsHidden.value;
+    if (existingValue) {
+        existingValue.split(',').forEach(s => {
+            s = s.trim();
+            if (s) {
+                currentSkills.push(s);
+                addTagElement(s);
+            }
+        });
+    }
+
+    // Handle skill input
+    skillInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addSkill(this.value.replace(',', '').trim());
+            this.value = '';
+        }
+    });
+
+    // Also add on blur (when user clicks away)
+    skillInput.addEventListener('blur', function() {
+        const val = this.value.trim();
+        if (val) {
+            addSkill(val);
+            this.value = '';
+        }
+    });
+
+    function addSkill(name) {
+        if (!name || currentSkills.map(s => s.toLowerCase()).includes(name.toLowerCase())) return;
+        currentSkills.push(name);
+        addTagElement(name);
+        updateHiddenField();
+    }
+
+    function addTagElement(name) {
+        const tag = document.createElement('span');
+        tag.className = 'skill-tag-input';
+        tag.innerHTML = `${name} <button type="button" class="btn-close btn-close-sm" aria-label="Remove"></button>`;
+        tag.querySelector('button').addEventListener('click', function() {
+            currentSkills = currentSkills.filter(s => s !== name);
+            tag.remove();
+            updateHiddenField();
+        });
+        skillTags.appendChild(tag);
+    }
+
+    function updateHiddenField() {
+        skillsHidden.value = currentSkills.join(',');
+    }
+});
+</script>
+{% endblock %}
