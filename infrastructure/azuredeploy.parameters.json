@@ -6,9 +6,6 @@
         "location": { "value": "centralindia" },
         "postgresAdminUser": { "value": "skillhiveadmin" },
         "postgresAdminPassword": { "value": "" },
-        "azureAdClientId": { "value": "" },
-        "azureAdClientSecret": { "value": "" },
-        "azureAdTenantId": { "value": "" },
         "mailServer": { "value": "smtp.office365.com" },
         "mailUsername": { "value": "" },
         "mailPassword": { "value": "" }

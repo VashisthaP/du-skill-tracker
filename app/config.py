@@ -26,6 +26,17 @@ class Config:
         'sqlite:///skillhive.db'  # Default: SQLite for local development
     )
 
+    # ---------- Azure AD / Entra ID (SSO) ----------
+    # TODO: Uncomment below to enable Azure AD SSO authentication.
+    # Also uncomment the SSO routes in auth.py, add msal to requirements.txt,
+    # and add the corresponding parameters to the ARM template.
+    # AZURE_AD_CLIENT_ID = os.environ.get('AZURE_AD_CLIENT_ID', '')
+    # AZURE_AD_CLIENT_SECRET = os.environ.get('AZURE_AD_CLIENT_SECRET', '')
+    # AZURE_AD_TENANT_ID = os.environ.get('AZURE_AD_TENANT_ID', '')
+    # AZURE_AD_AUTHORITY = f"https://login.microsoftonline.com/{os.environ.get('AZURE_AD_TENANT_ID', 'common')}"
+    # AZURE_AD_REDIRECT_URI = os.environ.get('AZURE_AD_REDIRECT_URI', 'http://localhost:5000/auth/callback')
+    # AZURE_AD_SCOPE = ['User.Read']
+
     # ---------- Email (Office 365 SMTP) ----------
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.office365.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))

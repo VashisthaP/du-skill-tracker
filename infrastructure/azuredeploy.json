@@ -2,7 +2,8 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "metadata": {
-        "description": "SkillHive – DU Demand & Supply Tracker. Deploys App Service (B1), PostgreSQL Flexible Server, Storage Account, and Application Insights."
+        "description": "SkillHive – DU Demand & Supply Tracker. Deploys App Service (B1), PostgreSQL Flexible Server, Storage Account, and Application Insights.",
+        "_sso_future": "To enable Azure AD SSO, add these parameters: azureAdClientId (string), azureAdClientSecret (securestring), azureAdTenantId (string). Then add these appSettings: AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET, AZURE_AD_TENANT_ID, AZURE_AD_REDIRECT_URI. Also uncomment SSO code in auth.py, config.py, and msal in requirements.txt."
     },
     "parameters": {
         "appName": {
