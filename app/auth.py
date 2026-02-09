@@ -196,7 +196,7 @@ def logout():
     logout_user()
     session.clear()
     flash(f'Goodbye, {user_name}! You have been logged out.', 'info')
-    return redirect(url_for('main.index'))
+    return redirect(url_for('auth.login'))
 
     # ----- SSO LOGOUT (uncomment to enable Azure AD sign-out) -----
     # tenant_id = current_app.config.get('AZURE_AD_TENANT_ID')
