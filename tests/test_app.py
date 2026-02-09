@@ -56,15 +56,17 @@ class TestModels:
     def test_create_user(self, app):
         with app.app_context():
             user = User(
-                azure_ad_id='test-123',
                 email='test@accenture.com',
                 display_name='Test User',
                 role='resource'
             )
+            user.set_password('TestPass@123')
             db.session.add(user)
             db.session.commit()
             assert user.id is not None
             assert user.role == 'resource'
+            assert user.check_password('TestPass@123') is True
+            assert user.check_password('wrong') is False
 
     def test_create_skill(self, app):
         with app.app_context():
@@ -77,7 +79,8 @@ class TestModels:
 
     def test_create_demand(self, app):
         with app.app_context():
-            user = User(azure_ad_id='pmo-1', email='pmo@test.com', display_name='PMO', role='pmo')
+            user = User(email='pmo@test.com', display_name='PMO', role='pmo')
+            user.set_password('Test@123')
             db.session.add(user)
             db.session.flush()
             demand = Demand(
@@ -97,8 +100,8 @@ class TestModels:
 
     def test_create_application(self, app):
         with app.app_context():
-            user = User(azure_ad_id='res-1', email='res@test.com', display_name='Resource', role='resource')
-            pmo = User(azure_ad_id='pmo-2', email='pmo2@test.com', display_name='PMO', role='pmo')
+            user = User(email='res@test.com', display_name='Resource', role='resource')
+            pmo = User(email='pmo2@test.com', display_name='PMO', role='pmo')
             db.session.add_all([user, pmo])
             db.session.flush()
             demand = Demand(project_name='P1', du_name='DU1', career_level='11', created_by=pmo.id)
@@ -118,9 +121,9 @@ class TestModels:
 
     def test_user_roles(self, app):
         with app.app_context():
-            admin = User(azure_ad_id='a1', email='a@t.com', display_name='A', role='admin')
-            pmo = User(azure_ad_id='p1', email='p@t.com', display_name='P', role='pmo')
-            evaluator = User(azure_ad_id='e1', email='e@t.com', display_name='E', role='evaluator')
+            admin = User(email='a@t.com', display_name='A', role='admin')
+            pmo = User(email='p@t.com', display_name='P', role='pmo')
+            evaluator = User(email='e@t.com', display_name='E', role='evaluator')
             db.session.add_all([admin, pmo, evaluator])
             db.session.commit()
             assert admin.is_admin is True
@@ -145,7 +148,12 @@ class TestRoutes:
         resp = client.get('/nonexistent-page-xyz')
         assert resp.status_code == 404
 
-    def test_dev_login_available(self, client):
-        resp = client.get('/auth/dev-login')
-        # Dev login route may only accept POST; GET may return 200 or 405
-        assert resp.status_code in (200, 405)
+    def test_login_page(self, client):
+        resp = client.get('/auth/login')
+        assert resp.status_code == 200
+        assert b'Sign In' in resp.data
+
+    def test_login_invalid_creds(self, client):
+        resp = client.post('/auth/login', data={'email': 'bad@test.com', 'password': 'wrong'})
+        assert resp.status_code == 200
+        assert b'Invalid email or password' in resp.data

@@ -26,15 +26,6 @@ class Config:
         'sqlite:///skillhive.db'  # Default: SQLite for local development
     )
 
-    # ---------- Azure AD / Entra ID ----------
-    AZURE_AD_CLIENT_ID = os.environ.get('AZURE_AD_CLIENT_ID', '')
-    AZURE_AD_CLIENT_SECRET = os.environ.get('AZURE_AD_CLIENT_SECRET', '')
-    AZURE_AD_TENANT_ID = os.environ.get('AZURE_AD_TENANT_ID', '')
-    AZURE_AD_AUTHORITY = f"https://login.microsoftonline.com/{os.environ.get('AZURE_AD_TENANT_ID', 'common')}"
-    AZURE_AD_REDIRECT_URI = os.environ.get('AZURE_AD_REDIRECT_URI', 'http://localhost:5000/auth/callback')
-    # Scopes: User.Read allows reading signed-in user's profile
-    AZURE_AD_SCOPE = ['User.Read']
-
     # ---------- Email (Office 365 SMTP) ----------
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.office365.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
@@ -55,8 +46,7 @@ class Config:
     APPINSIGHTS_INSTRUMENTATIONKEY = os.environ.get('APPINSIGHTS_INSTRUMENTATIONKEY', '')
 
     # ---------- Development Mode ----------
-    # When True: enables mock login, SQLite, local file storage
-    # When False: requires Azure AD, PostgreSQL, Blob Storage
+    # When True: enables SQLite, local file storage
     DEV_MODE = os.environ.get('DEV_MODE', 'false').lower() == 'true'
 
     # ---------- Pagination ----------

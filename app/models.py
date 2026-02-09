@@ -12,6 +12,7 @@ SQLAlchemy ORM models representing the core data entities:
 
 from datetime import datetime, timezone
 from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login_manager
 
 
@@ -52,10 +53,12 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    # Azure AD Object ID - unique identifier from Azure AD
+    # Azure AD Object ID - kept for future SSO integration
     azure_ad_id = db.Column(db.String(255), unique=True, nullable=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     display_name = db.Column(db.String(255), nullable=False)
+    # Password hash for local authentication
+    password_hash = db.Column(db.String(256), nullable=True)
     # Accenture Enterprise ID (e.g., "john.doe")
     enterprise_id = db.Column(db.String(50), nullable=True)
     # Role determines access level throughout the application
@@ -70,6 +73,16 @@ class User(UserMixin, db.Model):
                                        foreign_keys='Demand.created_by')
     applications = db.relationship('Application', backref='applicant', lazy='dynamic',
                                     foreign_keys='Application.user_id')
+
+    def set_password(self, password):
+        """Hash and store a password."""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        """Verify a password against the stored hash."""
+        if not self.password_hash:
+            return False
+        return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
         return f'<User {self.email} ({self.role})>'

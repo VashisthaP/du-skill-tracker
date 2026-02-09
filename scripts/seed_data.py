@@ -24,6 +24,8 @@ def seed():
     with app.app_context():
         db.create_all()
 
+        DEFAULT_PASSWORD = 'Welcome@2026'
+
         # ---- Users ----
         users_data = [
             {'email': 'admin@accenture.com',     'display_name': 'Admin User',      'role': 'admin',     'enterprise_id': 'admin.user'},
@@ -36,10 +38,14 @@ def seed():
         for u in users_data:
             existing = User.query.filter_by(email=u['email']).first()
             if not existing:
-                user = User(azure_ad_id=f"dev-{u['enterprise_id']}", **u)
+                user = User(**u)
+                user.set_password(DEFAULT_PASSWORD)
                 db.session.add(user)
                 users[u['role'] if u['role'] != 'resource' else u['enterprise_id']] = user
             else:
+                # Ensure existing users also get a password if they don't have one
+                if not existing.password_hash:
+                    existing.set_password(DEFAULT_PASSWORD)
                 users[u['role'] if u['role'] != 'resource' else u['enterprise_id']] = existing
         db.session.flush()
 

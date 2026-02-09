@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card border-0 shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <span style="font-size: 3rem;">🐝</span>
+                        <h3 class="mt-2"><strong>Skill</strong>Hive</h3>
+                        <p class="text-muted">DU Demand &amp; Supply Portal</p>
+                    </div>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show py-2" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" action="{{ url_for('auth.login') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-envelope me-1"></i>Email
+                            </label>
+                            <input type="email" name="email" class="form-control form-control-lg"
+                                   placeholder="you@accenture.com" required autofocus>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-lock me-1"></i>Password
+                            </label>
+                            <input type="password" name="password" class="form-control form-control-lg"
+                                   placeholder="Enter your password" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-accent w-100 btn-lg">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <small class="text-muted">
+                            Contact your administrator if you need an account or forgot your password.
+                        </small>
+                    </div>
+
+                    <hr class="my-4">
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <strong>Default Accounts</strong><br>
+                            Admin: <code>admin@accenture.com</code><br>
+                            PMO: <code>pmo@accenture.com</code><br>
+                            Evaluator: <code>evaluator@accenture.com</code><br>
+                            Resource: <code>resource1@accenture.com</code><br>
+                            <span class="text-purple">Password: <code>Welcome@2026</code></span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

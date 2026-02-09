@@ -25,18 +25,6 @@
             "type": "securestring",
             "metadata": { "description": "PostgreSQL administrator password (min 8 chars, mixed case + digit)." }
         },
-        "azureAdClientId": {
-            "type": "string",
-            "metadata": { "description": "Azure AD (Entra ID) App Registration Client ID." }
-        },
-        "azureAdClientSecret": {
-            "type": "securestring",
-            "metadata": { "description": "Azure AD App Registration Client Secret." }
-        },
-        "azureAdTenantId": {
-            "type": "string",
-            "metadata": { "description": "Azure AD Tenant ID." }
-        },
         "mailServer": {
             "type": "string",
             "defaultValue": "smtp.office365.com",
@@ -113,10 +101,6 @@
                     "appSettings": [
                         { "name": "SECRET_KEY", "value": "[uniqueString(resourceGroup().id, parameters('appName'))]" },
                         { "name": "DATABASE_URL", "value": "[concat('postgresql://', parameters('postgresAdminUser'), ':', parameters('postgresAdminPassword'), '@', variables('pgServerName'), '.postgres.database.azure.com:5432/', variables('pgDbName'), '?sslmode=require')]" },
-                        { "name": "AZURE_AD_CLIENT_ID", "value": "[parameters('azureAdClientId')]" },
-                        { "name": "AZURE_AD_CLIENT_SECRET", "value": "[parameters('azureAdClientSecret')]" },
-                        { "name": "AZURE_AD_TENANT_ID", "value": "[parameters('azureAdTenantId')]" },
-                        { "name": "AZURE_AD_REDIRECT_URI", "value": "[concat('https://', variables('webAppName'), '.azurewebsites.net/auth/callback')]" },
                         { "name": "AZURE_STORAGE_CONNECTION_STRING", "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), '2023-01-01').keys[0].value, ';EndpointSuffix=core.windows.net')]" },
                         { "name": "AZURE_STORAGE_CONTAINER", "value": "resumes" },
                         { "name": "APPINSIGHTS_INSTRUMENTATIONKEY", "value": "[reference(resourceId('Microsoft.Insights/components', variables('insightsName'))).InstrumentationKey]" },
