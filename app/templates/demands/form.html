@@ -23,7 +23,7 @@
                 </div>
                 <div class="card-body p-4">
                     <form method="POST" id="demandForm" novalidate>
-                        {{ form.hidden_tag() }}
+                        {{ form.csrf_token }}
 
                         <!-- ===== Project Information ===== -->
                         <h5 class="section-divider"><i class="bi bi-folder me-2"></i>Project Information</h5>
