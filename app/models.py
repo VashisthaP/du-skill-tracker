@@ -213,11 +213,11 @@ class Demand(db.Model):
     def career_level_display(self):
         """Human-readable career level label."""
         cl_labels = {
-            '8': 'CL8 - Senior Manager',
-            '9': 'CL9 - Manager',
-            '10': 'CL10 - Team Lead',
-            '11': 'CL11 - Senior Analyst',
-            '12': 'CL12 - Analyst'
+            '8': 'CL8 - AM',
+            '9': 'CL9 - TL',
+            '10': 'CL10 - SE',
+            '11': 'CL11 - SSE',
+            '12': 'CL12 - ASE'
         }
         return cl_labels.get(self.career_level, f'CL{self.career_level}')
 

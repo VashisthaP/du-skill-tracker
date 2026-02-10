@@ -50,11 +50,11 @@ class DemandForm(FlaskForm):
     career_level = SelectField(
         'Career Level',
         choices=[
-            ('12', 'CL12 - Analyst'),
-            ('11', 'CL11 - Senior Analyst'),
-            ('10', 'CL10 - Team Lead'),
-            ('9', 'CL9 - Manager'),
-            ('8', 'CL8 - Senior Manager'),
+            ('12', 'CL12 - ASE'),
+            ('11', 'CL11 - SSE'),
+            ('10', 'CL10 - SE'),
+            ('9', 'CL9 - TL'),
+            ('8', 'CL8 - AM'),
         ],
         validators=[DataRequired()]
     )

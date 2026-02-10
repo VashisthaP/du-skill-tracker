@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle skill input
+    // Handle skill input - keydown for Enter/comma
     skillInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
@@ -196,9 +196,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Handle datalist selection (browsers fire 'change' when a datalist item is picked)
+    skillInput.addEventListener('change', function() {
+        var val = this.value.trim();
+        if (val) {
+            addSkill(val);
+            this.value = '';
+        }
+    });
+
     // Also add on blur (when user clicks away)
     skillInput.addEventListener('blur', function() {
-        const val = this.value.trim();
+        var val = this.value.trim();
         if (val) {
             addSkill(val);
             this.value = '';
@@ -212,17 +221,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Validate skills before form submit
     demandForm.addEventListener('submit', function(e) {
-        // Ensure hidden field is up to date
+        // Sync hidden field with current state
         updateHiddenField();
-        if (currentSkills.length === 0) {
+        // Check both the array AND hidden field for robustness
+        var hiddenVal = (skillsHidden.value || '').trim();
+        if (currentSkills.length === 0 && !hiddenVal) {
             e.preventDefault();
-            const errorDiv = document.querySelector('.skills-error');
+            var errorDiv = document.querySelector('.skills-error');
             if (errorDiv) {
                 errorDiv.textContent = 'At least one skill is required';
                 errorDiv.style.display = 'block';
             }
             skillInput.focus();
             return false;
+        }
+        // If hidden field has a value but array is empty, resync from hidden field
+        if (currentSkills.length === 0 && hiddenVal) {
+            skillsHidden.value = hiddenVal;
         }
     });
 
