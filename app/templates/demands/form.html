@@ -72,6 +72,7 @@
                                         {% endfor %}
                                     </datalist>
                                 </div>
+                                <div class="text-danger small mt-1 skills-error" style="display:none;">At least one skill is required</div>
                                 {% if form.skills.errors %}
                                 <div class="text-danger small mt-1">{{ form.skills.errors[0] }}</div>
                                 {% endif %}
@@ -171,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const skillInput = document.getElementById('skillInput');
     const skillTags = document.getElementById('skillTags');
     const skillsHidden = document.getElementById('skillsHidden');
+    const demandForm = document.getElementById('demandForm');
 
     // Initialize with existing skills (for edit mode)
     let currentSkills = [];
@@ -203,17 +205,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Click on container focuses the input
+    document.getElementById('skillTagContainer').addEventListener('click', function() {
+        skillInput.focus();
+    });
+
+    // Validate skills before form submit
+    demandForm.addEventListener('submit', function(e) {
+        // Ensure hidden field is up to date
+        updateHiddenField();
+        if (currentSkills.length === 0) {
+            e.preventDefault();
+            const errorDiv = document.querySelector('.skills-error');
+            if (errorDiv) {
+                errorDiv.textContent = 'At least one skill is required';
+                errorDiv.style.display = 'block';
+            }
+            skillInput.focus();
+            return false;
+        }
+    });
+
     function addSkill(name) {
         if (!name || currentSkills.map(s => s.toLowerCase()).includes(name.toLowerCase())) return;
         currentSkills.push(name);
         addTagElement(name);
         updateHiddenField();
+        // Clear error message
+        const errorDiv = document.querySelector('.skills-error');
+        if (errorDiv) errorDiv.style.display = 'none';
     }
 
     function addTagElement(name) {
         const tag = document.createElement('span');
         tag.className = 'skill-tag-input';
-        tag.innerHTML = `${name} <button type="button" class="btn-close btn-close-sm" aria-label="Remove"></button>`;
+        tag.innerHTML = name + ' <button type="button" class="btn-close btn-close-sm" aria-label="Remove"></button>';
         tag.querySelector('button').addEventListener('click', function() {
             currentSkills = currentSkills.filter(s => s !== name);
             tag.remove();

@@ -45,7 +45,7 @@ class DemandForm(FlaskForm):
     # Skills are handled via JavaScript tag input, stored as hidden comma-separated value
     skills = HiddenField(
         'Required Skills',
-        validators=[DataRequired(message='At least one skill is required')]
+        validators=[Optional()]
     )
     career_level = SelectField(
         'Career Level',

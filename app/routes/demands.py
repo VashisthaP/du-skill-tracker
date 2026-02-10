@@ -189,6 +189,12 @@ def create():
     all_skills = Skill.query.order_by(Skill.name).all()
 
     if form.validate_on_submit():
+        # Server-side skills validation
+        skills_str = form.skills.data or ''
+        if not skills_str.strip():
+            flash('At least one skill is required.', 'warning')
+            return render_template('demands/form.html', form=form, all_skills=all_skills, is_edit=False)
+
         try:
             # Create the demand object
             demand = Demand(
@@ -266,6 +272,12 @@ def edit(demand_id):
         form.skills.data = ','.join(s.name for s in demand.skills)
 
     if form.validate_on_submit():
+        # Server-side skills validation
+        skills_str = form.skills.data or ''
+        if not skills_str.strip():
+            flash('At least one skill is required.', 'warning')
+            return render_template('demands/form.html', form=form, demand=demand, all_skills=all_skills, is_edit=True)
+
         try:
             # Update demand fields
             demand.project_name = form.project_name.data
