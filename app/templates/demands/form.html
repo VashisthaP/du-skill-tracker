@@ -119,7 +119,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Evaluator Email <span class="text-danger">*</span></label>
-                                {{ form.evaluator_email(class="form-control" + (" is-invalid" if form.evaluator_email.errors else ""), placeholder="priya.sharma@accenture.com") }}
+                                {{ form.evaluator_email(class="form-control" + (" is-invalid" if form.evaluator_email.errors else ""), placeholder="priya.sharma@company.com") }}
                                 {% for error in form.evaluator_email.errors %}
                                 <div class="invalid-feedback">{{ error }}</div>
                                 {% endfor %}
