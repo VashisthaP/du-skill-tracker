@@ -76,9 +76,7 @@ a:hover { color: var(--purple-hover); }
     position: relative; overflow: hidden;
 }
 .hero-section::before {
-    content: '>'; position: absolute; right: -60px; top: -40px;
-    font-size: 28rem; font-weight: 800; color: rgba(161,0,255,.08);
-    line-height: 1; pointer-events: none;
+    content: ''; display: none;
 }
 .hero-title { font-size: 3rem; font-weight: 800; line-height: 1.15; }
 .hero-subtitle { font-size: 1.15rem; color: rgba(255,255,255,.75); max-width: 540px; }
@@ -275,9 +273,7 @@ a:hover { color: var(--purple-hover); }
 .hero-stat-label { font-size: .75rem; color: rgba(255,255,255,.6); }
 .text-accent-glow { color: #C580FF; }
 .hero-gt-symbol {
-    position: absolute; right: -40px; bottom: -80px;
-    font-size: 20rem; font-weight: 800; color: rgba(161,0,255,.06);
-    line-height: 1; pointer-events: none;
+    display: none;
 }
 .min-vh-75 { min-height: 75vh; }
 
