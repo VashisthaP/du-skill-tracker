@@ -214,6 +214,53 @@ python -m pytest tests/ -v
 
 ---
 
-## License
+## Azure Deployment Commands
 
-Internal use only — Accenture Delivery Unit tool.
+After making any code changes, use the following commands to deploy to Azure. Run these in **Azure Cloud Shell** (Bash).
+
+### Block 1 — Set Variables & Deploy
+
+```bash
+export RG_NAME="rg-skillhive"
+export APP_NAME="skillhive-accenture"
+export SUBSCRIPTION_ID="2f0676e3-d88a-4118-93c9-5c05c8da156f"
+az account set --subscription "$SUBSCRIPTION_ID"
+
+cd /tmp
+rm -rf /tmp/skillhive
+git clone https://github.com/VashisthaP/du-skill-tracker.git skillhive
+cd /tmp/skillhive
+
+rm -f /tmp/deploy.zip
+zip -r /tmp/deploy.zip . -x ".git/*" "pvenv/*" "__pycache__/*" "*.pyc" ".env" "tests/*"
+
+az webapp deployment source config-zip \
+  --resource-group "$RG_NAME" \
+  --name "$APP_NAME" \
+  --src /tmp/deploy.zip \
+  --timeout 600
+```
+
+### Block 2 — Extract Compressed Build & Restart
+
+Once Block 1 finishes, SSH into the App Service to extract the Oryx build output:
+
+```bash
+az webapp ssh --resource-group "rg-skillhive" --name "skillhive-accenture"
+```
+
+**Inside SSH, run:**
+
+```bash
+cd /home/site/wwwroot
+tar xzf output.tar.gz
+exit
+```
+
+### Block 3 — Restart the App
+
+```bash
+az webapp restart --resource-group "rg-skillhive" --name "skillhive-accenture"
+```
+
+The app will be live at **https://skillhive-accenture.azurewebsites.net** after restart.
