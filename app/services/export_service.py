@@ -67,7 +67,7 @@ def export_demands_to_excel():
 
     # Define column headers
     headers = [
-        'ID', 'Project Name', 'Project Code', 'DU Name', 'Client Name',
+        'ID', 'Project Name', 'Project Code', 'RRD',
         'Required Skills', 'Career Level', 'Positions', 'Start Date',
         'End Date', 'Priority', 'Status', 'Evaluator Name', 'Evaluator Email',
         'Evaluator Contact', 'Description', 'Applications', 'Created By',
@@ -88,8 +88,7 @@ def export_demands_to_excel():
             demand.id,
             demand.project_name,
             demand.project_code or '',
-            demand.du_name,
-            demand.client_name or '',
+            demand.rrd,
             demand.skills_display,
             f'CL{demand.career_level}',
             demand.num_positions,
@@ -112,8 +111,8 @@ def export_demands_to_excel():
             cell.alignment = DATA_ALIGNMENT
             cell.border = THIN_BORDER
 
-        # Apply priority color to the priority column (column 11)
-        priority_cell = ws.cell(row=row_idx, column=11)
+        # Apply priority color to the priority column (column 10)
+        priority_cell = ws.cell(row=row_idx, column=10)
         if demand.priority in PRIORITY_FILLS:
             priority_cell.fill = PRIORITY_FILLS[demand.priority]
 
@@ -168,7 +167,7 @@ def export_applications_to_excel(demand_id=None):
     # Define column headers
     headers = [
         'ID', 'Applicant Name', 'Enterprise ID', 'Project Name',
-        'DU Name', 'Career Level', 'Current Project', 'Years of Experience',
+        'RRD', 'Career Level', 'Current Project', 'Years of Experience',
         'Skills', 'Resume', 'Status', 'Remarks', 'Applied At', 'Last Updated'
     ]
 
@@ -187,7 +186,7 @@ def export_applications_to_excel(demand_id=None):
             app.applicant_name,
             app.enterprise_id or '',
             app.demand.project_name if app.demand else '',
-            app.demand.du_name if app.demand else '',
+            app.demand.rrd if app.demand else '',
             f'CL{app.demand.career_level}' if app.demand else '',
             app.current_project or '',
             app.years_of_experience or 0,

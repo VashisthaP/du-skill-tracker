@@ -1,11 +1,10 @@
 """
 SkillHive - Application Routes
 ================================
-Handles the resource application workflow:
-  1. Resource applies for a demand (uploads resume + fills form)
-  2. PMO/Evaluator reviews applications
-  3. Status updates: Applied → Under Evaluation → Selected / Rejected
-  4. Email notifications sent at each status change
+Handles the application review workflow:
+  1. PMO/Evaluator reviews applications
+  2. Status updates: Applied → Under Evaluation → Selected / Rejected
+  3. Email notifications sent at each status change
 """
 
 import os
@@ -18,136 +17,10 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import Demand, Application, ApplicationHistory
-from app.forms import ApplicationForm, ApplicationStatusForm
+from app.forms import ApplicationStatusForm
 from app.utils.decorators import pmo_required, evaluator_required
 
 applications_bp = Blueprint('applications', __name__, template_folder='templates')
-
-
-# =====================================================
-# APPLY FOR A DEMAND (Resource)
-# =====================================================
-
-@applications_bp.route('/apply/<int:demand_id>', methods=['GET', 'POST'])
-@login_required
-def apply(demand_id):
-    """
-    Apply for evaluation against a specific demand.
-    Resources fill out a short form and upload their one-page resume.
-    Sends email notification to the demand raiser and evaluator.
-    """
-    demand = Demand.query.get_or_404(demand_id)
-
-    # Validate that the demand is still open
-    if not demand.is_open:
-        flash('This demand is no longer accepting applications.', 'warning')
-        return redirect(url_for('demands.detail', demand_id=demand_id))
-
-    # Check if user has already applied
-    existing_application = Application.query.filter_by(
-        demand_id=demand_id,
-        user_id=current_user.id
-    ).first()
-
-    if existing_application:
-        flash('You have already applied for this demand.', 'info')
-        return redirect(url_for('applications.my_applications'))
-
-    form = ApplicationForm()
-
-    # Pre-fill form with user's info if available
-    if request.method == 'GET':
-        form.applicant_name.data = current_user.display_name
-        form.enterprise_id.data = current_user.enterprise_id
-
-    if form.validate_on_submit():
-        try:
-            # Handle resume file upload
-            resume_filename = None
-            resume_blob_url = None
-
-            if form.resume.data:
-                resume_filename, resume_blob_url = _handle_resume_upload(
-                    form.resume.data, demand_id, current_user.id
-                )
-
-            # Create the application
-            application = Application(
-                demand_id=demand_id,
-                user_id=current_user.id,
-                applicant_name=form.applicant_name.data,
-                enterprise_id=form.enterprise_id.data,
-                current_project=form.current_project.data,
-                years_of_experience=form.years_of_experience.data,
-                skills_text=form.skills_text.data,
-                resume_filename=resume_filename,
-                resume_blob_url=resume_blob_url,
-                status='applied'
-            )
-            db.session.add(application)
-
-            # Create initial history entry
-            history = ApplicationHistory(
-                application=application,
-                old_status=None,
-                new_status='applied',
-                changed_by=current_user.id,
-                remarks='Application submitted'
-            )
-            db.session.add(history)
-
-            # Update demand status to in_progress if it was open
-            if demand.status == 'open':
-                demand.status = 'in_progress'
-
-            db.session.commit()
-
-            # Send email notifications
-            try:
-                from app.services.email_service import send_application_notification
-                send_application_notification(application, demand)
-            except Exception as e:
-                current_app.logger.warning(f"Failed to send application email: {e}")
-
-            flash('Your application has been submitted successfully! 🎉', 'success')
-            return redirect(url_for('applications.my_applications'))
-
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Error submitting application: {e}")
-            flash('Failed to submit application. Please try again.', 'danger')
-
-    return render_template(
-        'applications/apply.html',
-        form=form,
-        demand=demand
-    )
-
-
-# =====================================================
-# MY APPLICATIONS (Resource view)
-# =====================================================
-
-@applications_bp.route('/my')
-@login_required
-def my_applications():
-    """
-    View the current user's applications and their statuses.
-    Resources can track their application workflow here.
-    """
-    page = request.args.get('page', 1, type=int)
-
-    applications = (
-        Application.query
-        .filter_by(user_id=current_user.id)
-        .order_by(Application.applied_at.desc())
-        .paginate(page=page, per_page=20, error_out=False)
-    )
-
-    return render_template(
-        'applications/my_applications.html',
-        applications=applications
-    )
 
 
 # =====================================================
@@ -291,10 +164,8 @@ def detail(application_id):
     """
     application = Application.query.get_or_404(application_id)
 
-    # Only allow the applicant, PMO, or evaluators to view
-    if (application.user_id != current_user.id
-            and not current_user.is_pmo
-            and not current_user.is_evaluator):
+    # Only allow PMO or evaluators to view
+    if not current_user.is_pmo and not current_user.is_evaluator:
         abort(403)
 
     # Get status history
@@ -325,10 +196,8 @@ def download_resume(application_id):
     """
     application = Application.query.get_or_404(application_id)
 
-    # Access control
-    if (application.user_id != current_user.id
-            and not current_user.is_pmo
-            and not current_user.is_evaluator):
+    # Access control - PMO and evaluators only
+    if not current_user.is_pmo and not current_user.is_evaluator:
         abort(403)
 
     if not application.resume_filename:

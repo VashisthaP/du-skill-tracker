@@ -31,8 +31,8 @@ DEMAND_CREATED_TEMPLATE = """
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
             <tr><td style="padding: 8px; font-weight: bold; color: #666;">Project:</td>
                 <td style="padding: 8px;">{{ demand.project_name }}</td></tr>
-            <tr style="background: #fff;"><td style="padding: 8px; font-weight: bold; color: #666;">DU:</td>
-                <td style="padding: 8px;">{{ demand.du_name }}</td></tr>
+            <tr style="background: #fff;"><td style="padding: 8px; font-weight: bold; color: #666;">RRD:</td>
+                <td style="padding: 8px;">{{ demand.rrd }}</td></tr>
             <tr><td style="padding: 8px; font-weight: bold; color: #666;">Career Level:</td>
                 <td style="padding: 8px;">CL{{ demand.career_level }}</td></tr>
             <tr style="background: #fff;"><td style="padding: 8px; font-weight: bold; color: #666;">Skills:</td>

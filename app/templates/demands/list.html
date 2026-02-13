@@ -7,7 +7,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h2 class="page-title mb-0"><i class="bi bi-briefcase-fill text-purple me-2"></i>Open Demands</h2>
-            <p class="text-muted mb-0">Browse and apply for project opportunities</p>
+            <p class="text-muted mb-0">Browse and filter project demands</p>
         </div>
         <div class="d-flex gap-2">
             {% if current_user.is_pmo %}
@@ -33,7 +33,7 @@
                         <label class="form-label small fw-semibold">Search</label>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" name="search" class="form-control" placeholder="Project, client, DU..."
+                            <input type="text" name="search" class="form-control" placeholder="Project, RRD..."
                                    value="{{ filters.search }}">
                         </div>
                     </div>
@@ -125,10 +125,7 @@
                 <small class="text-muted">{{ demand.project_code }}</small>
                 {% endif %}
                 <div class="demand-card-meta mt-2">
-                    <span><i class="bi bi-building me-1"></i>{{ demand.du_name }}</span>
-                    {% if demand.client_name %}
-                    <span><i class="bi bi-briefcase me-1"></i>{{ demand.client_name }}</span>
-                    {% endif %}
+                    <span><i class="bi bi-hash me-1"></i>{{ demand.rrd }}</span>
                 </div>
                 <div class="demand-card-skills mt-2">
                     {% for skill in demand.skills[:4] %}

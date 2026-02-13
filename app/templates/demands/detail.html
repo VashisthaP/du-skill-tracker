@@ -74,24 +74,13 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <div class="detail-item">
-                                <i class="bi bi-building text-purple"></i>
+                                <i class="bi bi-hash text-purple"></i>
                                 <div>
-                                    <small class="text-muted">DU Name</small>
-                                    <div class="fw-semibold">{{ demand.du_name }}</div>
+                                    <small class="text-muted">RRD</small>
+                                    <div class="fw-semibold">{{ demand.rrd }}</div>
                                 </div>
                             </div>
                         </div>
-                        {% if demand.client_name %}
-                        <div class="col-md-6">
-                            <div class="detail-item">
-                                <i class="bi bi-briefcase text-purple"></i>
-                                <div>
-                                    <small class="text-muted">Client</small>
-                                    <div class="fw-semibold">{{ demand.client_name }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
                         <div class="col-md-6">
                             <div class="detail-item">
                                 <i class="bi bi-mortarboard text-purple"></i>
@@ -223,41 +212,6 @@
              SIDEBAR
         ====================================================== -->
         <div class="col-lg-4">
-            <!-- Apply Button -->
-            {% if demand.is_open %}
-                {% if has_applied %}
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body text-center py-4">
-                        <i class="bi bi-check-circle-fill text-success display-4"></i>
-                        <h5 class="mt-2 text-success">Already Applied</h5>
-                        <p class="text-muted">You have already submitted your application.</p>
-                        <a href="{{ url_for('applications.my_applications') }}" class="btn btn-outline-purple btn-sm">
-                            Track Status <i class="bi bi-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                </div>
-                {% else %}
-                <div class="card border-0 shadow-sm mb-4 border-start border-4 border-purple">
-                    <div class="card-body text-center py-4">
-                        <h5>Interested in this role?</h5>
-                        <p class="text-muted small">Submit your profile and get evaluated by the project team.</p>
-                        <a href="{{ url_for('applications.apply', demand_id=demand.id) }}"
-                           class="btn btn-accent btn-lg w-100">
-                            <i class="bi bi-send-check me-2"></i>Get Evaluated
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
-            {% else %}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-lock-fill text-muted display-4"></i>
-                    <h5 class="mt-2 text-muted">Applications Closed</h5>
-                    <p class="text-muted small">This demand is {{ demand.status_display.lower() }}.</p>
-                </div>
-            </div>
-            {% endif %}
-
             <!-- Evaluator Info -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-0 pt-3">

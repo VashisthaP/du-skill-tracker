@@ -120,15 +120,14 @@
                         <a href="{{ url_for('demands.list_demands') }}" class="btn btn-outline-purple btn-sm text-start">
                             <i class="bi bi-search me-2"></i>Browse Open Demands
                         </a>
-                        <a href="{{ url_for('applications.my_applications') }}" class="btn btn-outline-purple btn-sm text-start">
-                            <i class="bi bi-file-earmark-person me-2"></i>My Applications
+                        {% if current_user.is_pmo or current_user.is_evaluator %}
+                        <a href="{{ url_for('applications.manage') }}" class="btn btn-outline-purple btn-sm text-start">
+                            <i class="bi bi-kanban me-2"></i>Manage Applications
                         </a>
+                        {% endif %}
                         {% if current_user.is_pmo %}
                         <a href="{{ url_for('demands.create') }}" class="btn btn-accent btn-sm text-start">
                             <i class="bi bi-plus-lg me-2"></i>Raise New Demand
-                        </a>
-                        <a href="{{ url_for('applications.manage') }}" class="btn btn-outline-purple btn-sm text-start">
-                            <i class="bi bi-kanban me-2"></i>Manage Applications
                         </a>
                         <a href="{{ url_for('demands.export_excel') }}" class="btn btn-outline-success btn-sm text-start">
                             <i class="bi bi-file-earmark-excel me-2"></i>Export Demands
@@ -140,24 +139,6 @@
                         </a>
                         {% endif %}
                     </div>
-
-                    <!-- My Recent Applications -->
-                    {% if my_applications %}
-                    <hr>
-                    <h6 class="text-muted mb-2"><small>Recent Applications</small></h6>
-                    {% for app in my_applications[:3] %}
-                    <div class="mini-app-card mb-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="fw-semibold text-truncate" style="max-width: 150px;">
-                                {{ app.demand.project_name if app.demand else 'Unknown' }}
-                            </small>
-                            <span class="badge bg-{{ app.status_color }} badge-sm">
-                                {{ app.status_display }}
-                            </span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -186,7 +167,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Project</th>
-                                    <th>DU / Client</th>
+                                    <th>RRD</th>
                                     <th>Skills</th>
                                     <th>Career Level</th>
                                     <th>Priority</th>
@@ -207,10 +188,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {{ demand.du_name }}
-                                        {% if demand.client_name %}
-                                        <br><small class="text-muted">{{ demand.client_name }}</small>
-                                        {% endif %}
+                                        {{ demand.rrd }}
                                     </td>
                                     <td>
                                         {% for skill in demand.skills[:3] %}

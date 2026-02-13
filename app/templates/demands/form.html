@@ -40,16 +40,12 @@
                                 <label class="form-label">Project Code</label>
                                 {{ form.project_code(class="form-control", placeholder="e.g., PRJ-2026-001") }}
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">DU Name <span class="text-danger">*</span></label>
-                                {{ form.du_name(class="form-control" + (" is-invalid" if form.du_name.errors else ""), placeholder="e.g., Technology - Cloud") }}
-                                {% for error in form.du_name.errors %}
+                            <div class="col-md-4">
+                                <label class="form-label">RRD <span class="text-danger">*</span></label>
+                                {{ form.rrd(class="form-control" + (" is-invalid" if form.rrd.errors else ""), placeholder="e.g., RRD-2026-001") }}
+                                {% for error in form.rrd.errors %}
                                 <div class="invalid-feedback">{{ error }}</div>
                                 {% endfor %}
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Client Name</label>
-                                {{ form.client_name(class="form-control", placeholder="e.g., Global Enterprises Inc.") }}
                             </div>
                         </div>
 

@@ -242,16 +242,8 @@ def _get_dashboard_data():
     )
 
     # User-specific data
-    my_applications = []
     my_demands = []
     if current_user.is_authenticated:
-        my_applications = (
-            Application.query
-            .filter_by(user_id=current_user.id)
-            .order_by(Application.applied_at.desc())
-            .limit(5)
-            .all()
-        )
         if current_user.is_pmo:
             my_demands = (
                 Demand.query
@@ -265,6 +257,5 @@ def _get_dashboard_data():
         'stats': stats,
         'trending_skills': trending_skills,
         'latest_demands': latest_demands,
-        'my_applications': my_applications,
         'my_demands': my_demands,
     }

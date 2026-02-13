@@ -10,7 +10,7 @@
                     {% if current_user.is_pmo or current_user.is_evaluator %}
                     <li class="breadcrumb-item"><a href="{{ url_for('applications.manage') }}">Manage Applications</a></li>
                     {% else %}
-                    <li class="breadcrumb-item"><a href="{{ url_for('applications.my_applications') }}">My Applications</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
                     {% endif %}
                     <li class="breadcrumb-item active">Application #{{ application.id }}</li>
                 </ol>

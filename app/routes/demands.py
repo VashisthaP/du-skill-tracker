@@ -59,9 +59,9 @@ def list_demands():
         query = query.filter(Demand.career_level == cl_filter)
 
     # DU Name filter
-    du_filter = request.args.get('du_name', '')
+    du_filter = request.args.get('rrd', '')
     if du_filter:
-        query = query.filter(Demand.du_name.ilike(f'%{du_filter}%'))
+        query = query.filter(Demand.rrd.ilike(f'%{du_filter}%'))
 
     # Skill filter - demands that require a specific skill
     skill_filter = request.args.get('skill', '')
@@ -70,15 +70,14 @@ def list_demands():
             Demand.skills.any(Skill.name.ilike(f'%{skill_filter}%'))
         )
 
-    # Text search (project name, client, description)
+    # Text search (project name, rrd, description)
     search = request.args.get('search', '').strip()
     if search:
         search_pattern = f'%{search}%'
         query = query.filter(
             db.or_(
                 Demand.project_name.ilike(search_pattern),
-                Demand.client_name.ilike(search_pattern),
-                Demand.du_name.ilike(search_pattern),
+                Demand.rrd.ilike(search_pattern),
                 Demand.description.ilike(search_pattern),
             )
         )
@@ -106,11 +105,11 @@ def list_demands():
     # ---------- Paginate Results ----------
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
-    # Get unique DU names for the filter dropdown
-    du_names = (
-        db.session.query(Demand.du_name)
+    # Get unique RRD values for the filter dropdown
+    rrd_values = (
+        db.session.query(Demand.rrd)
         .distinct()
-        .order_by(Demand.du_name)
+        .order_by(Demand.rrd)
         .all()
     )
 
@@ -121,14 +120,14 @@ def list_demands():
         'demands/list.html',
         demands=pagination.items,
         pagination=pagination,
-        du_names=[d[0] for d in du_names],
+        rrd_values=[d[0] for d in rrd_values],
         all_skills=all_skills,
         # Pass current filter values back to template for "sticky" filters
         filters={
             'status': status_filter,
             'priority': priority_filter,
             'career_level': cl_filter,
-            'du_name': du_filter,
+            'rrd': du_filter,
             'skill': skill_filter,
             'search': search,
             'sort': sort_by,
@@ -149,13 +148,6 @@ def detail(demand_id):
     """
     demand = Demand.query.get_or_404(demand_id)
 
-    # Check if current user has already applied
-    from app.models import Application
-    has_applied = Application.query.filter_by(
-        demand_id=demand_id,
-        user_id=current_user.id
-    ).first() is not None
-
     # Get applications for this demand (visible to PMO/evaluator)
     applications = []
     if current_user.is_pmo or current_user.is_evaluator:
@@ -166,7 +158,6 @@ def detail(demand_id):
     return render_template(
         'demands/detail.html',
         demand=demand,
-        has_applied=has_applied,
         applications=applications
     )
 
@@ -200,8 +191,7 @@ def create():
             demand = Demand(
                 project_name=form.project_name.data,
                 project_code=form.project_code.data,
-                du_name=form.du_name.data,
-                client_name=form.client_name.data,
+                rrd=form.rrd.data,
                 career_level=form.career_level.data,
                 num_positions=form.num_positions.data,
                 start_date=form.start_date.data,
@@ -282,8 +272,7 @@ def edit(demand_id):
             # Update demand fields
             demand.project_name = form.project_name.data
             demand.project_code = form.project_code.data
-            demand.du_name = form.du_name.data
-            demand.client_name = form.client_name.data
+            demand.rrd = form.rrd.data
             demand.career_level = form.career_level.data
             demand.num_positions = form.num_positions.data
             demand.start_date = form.start_date.data

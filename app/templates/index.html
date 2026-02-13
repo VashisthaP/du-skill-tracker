@@ -96,36 +96,28 @@
             <p class="text-muted">A streamlined workflow connecting project demands with talented resources</p>
         </div>
         <div class="row g-4">
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="how-it-works-card text-center">
                     <div class="how-step-number">1</div>
                     <div class="how-icon"><i class="bi bi-megaphone-fill"></i></div>
-                    <h5>PMO Raises Demand</h5>
-                    <p class="text-muted small">Project Management team lists the skill requirements, career level, and evaluator details.</p>
+                    <h5>PMO Lists Demands</h5>
+                    <p class="text-muted small">Project Management team lists skill requirements using RRDs, career levels, and evaluator details.</p>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="how-it-works-card text-center">
                     <div class="how-step-number">2</div>
                     <div class="how-icon"><i class="bi bi-search"></i></div>
-                    <h5>Resources Browse</h5>
-                    <p class="text-muted small">Resources view open demands, filter by skills, and find matching opportunities.</p>
+                    <h5>Evaluators Review</h5>
+                    <p class="text-muted small">Evaluators login to see open demands, review candidate applications, and provide feedback.</p>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="how-it-works-card text-center">
                     <div class="how-step-number">3</div>
-                    <div class="how-icon"><i class="bi bi-send-check-fill"></i></div>
-                    <h5>Apply for Evaluation</h5>
-                    <p class="text-muted small">Resources submit their profile and one-page resume. Evaluators get notified via email.</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="how-it-works-card text-center">
-                    <div class="how-step-number">4</div>
                     <div class="how-icon"><i class="bi bi-check-circle-fill"></i></div>
-                    <h5>Track & Select</h5>
-                    <p class="text-muted small">Track application status: Applied → Under Evaluation → Selected. Everyone stays updated.</p>
+                    <h5>Evaluate & Select</h5>
+                    <p class="text-muted small">Evaluators share feedback and update status: Under Evaluation → Selected / Rejected.</p>
                 </div>
             </div>
         </div>
@@ -158,10 +150,7 @@
                     </div>
                     <h5 class="demand-card-title">{{ demand.project_name }}</h5>
                     <div class="demand-card-meta">
-                        <span><i class="bi bi-building me-1"></i>{{ demand.du_name }}</span>
-                        {% if demand.client_name %}
-                        <span><i class="bi bi-briefcase me-1"></i>{{ demand.client_name }}</span>
-                        {% endif %}
+                        <span><i class="bi bi-hash me-1"></i>{{ demand.rrd }}</span>
                     </div>
                     <div class="demand-card-skills">
                         {% for skill in demand.skills[:5] %}

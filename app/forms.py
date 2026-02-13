@@ -31,14 +31,10 @@ class DemandForm(FlaskForm):
         'Project Code',
         validators=[Optional(), Length(max=50)]
     )
-    du_name = StringField(
-        'DU Name',
-        validators=[DataRequired(message='DU name is required'),
+    rrd = StringField(
+        'RRD',
+        validators=[DataRequired(message='RRD is required'),
                     Length(max=255)]
-    )
-    client_name = StringField(
-        'Client Name',
-        validators=[Optional(), Length(max=255)]
     )
 
     # ---------- Requirement Details ----------

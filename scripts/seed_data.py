@@ -65,8 +65,7 @@ def seed():
                 {
                     'project_name': 'Cloud Migration – BFSI Client',
                     'project_code': 'PRJ-2024-001',
-                    'du_name': 'Cloud & Infrastructure',
-                    'client_name': 'HDFC Bank',
+                    'rrd': 'RRD-2024-001',
                     'career_level': '10',
                     'num_positions': 3,
                     'start_date': date.today() + timedelta(days=15),
@@ -81,8 +80,7 @@ def seed():
                 {
                     'project_name': 'GenAI Chatbot Platform',
                     'project_code': 'PRJ-2024-002',
-                    'du_name': 'Applied Intelligence',
-                    'client_name': 'Internal',
+                    'rrd': 'RRD-2024-002',
                     'career_level': '11',
                     'num_positions': 5,
                     'start_date': date.today() + timedelta(days=7),
@@ -96,8 +94,7 @@ def seed():
                 {
                     'project_name': 'SAP S/4HANA Upgrade',
                     'project_code': 'PRJ-2024-003',
-                    'du_name': 'Enterprise Solutions',
-                    'client_name': 'Tata Motors',
+                    'rrd': 'RRD-2024-003',
                     'career_level': '9',
                     'num_positions': 2,
                     'start_date': date.today() + timedelta(days=30),
@@ -110,8 +107,7 @@ def seed():
                 {
                     'project_name': 'React Native Mobile App',
                     'project_code': 'PRJ-2024-004',
-                    'du_name': 'Digital Engineering',
-                    'client_name': 'Flipkart',
+                    'rrd': 'RRD-2024-004',
                     'career_level': '12',
                     'num_positions': 4,
                     'start_date': date.today() + timedelta(days=10),

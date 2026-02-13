@@ -162,8 +162,7 @@ class Demand(db.Model):
     # ---------- Project Information ----------
     project_name = db.Column(db.String(255), nullable=False)
     project_code = db.Column(db.String(50), nullable=True)
-    du_name = db.Column(db.String(255), nullable=False)
-    client_name = db.Column(db.String(255), nullable=True)
+    rrd = db.Column(db.String(255), nullable=False)
 
     # ---------- Requirement Details ----------
     # Career Level: Accenture career levels 8 (Sr. Manager) to 12 (Associate)

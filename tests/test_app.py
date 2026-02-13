@@ -85,7 +85,7 @@ class TestModels:
             db.session.flush()
             demand = Demand(
                 project_name='Test Project',
-                du_name='Test DU',
+                rrd='RRD-TEST-001',
                 career_level='10',
                 priority='high',
                 created_by=user.id
@@ -104,7 +104,7 @@ class TestModels:
             pmo = User(email='pmo2@test.com', display_name='PMO', role='pmo')
             db.session.add_all([user, pmo])
             db.session.flush()
-            demand = Demand(project_name='P1', du_name='DU1', career_level='11', created_by=pmo.id)
+            demand = Demand(project_name='P1', rrd='RRD-001', career_level='11', created_by=pmo.id)
             db.session.add(demand)
             db.session.flush()
             application = Application(

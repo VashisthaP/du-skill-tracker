@@ -19,7 +19,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h5 class="mb-1">{{ demand.project_name }}</h5>
-                            <span class="text-muted">{{ demand.du_name }}{% if demand.client_name %} • {{ demand.client_name }}{% endif %}</span>
+                            <span class="text-muted">{{ demand.rrd }}</span>
                         </div>
                         <div class="text-end">
                             <span class="badge bg-{{ demand.priority_color }}">{{ demand.priority | upper }}</span>
