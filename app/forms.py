@@ -172,3 +172,38 @@ class ApplicationStatusForm(FlaskForm):
         'Remarks / Feedback',
         validators=[Optional(), Length(max=2000)]
     )
+
+
+class ResourceUploadForm(FlaskForm):
+    """
+    Form for PMO to bulk-upload an Excel file of available resources.
+    The Excel file maps to the Resource model fields.
+    """
+    excel_file = FileField(
+        'Upload Resource List (Excel)',
+        validators=[
+            DataRequired(message='Please select an Excel file'),
+            FileAllowed(['xlsx', 'xls'], 'Only Excel files (.xlsx, .xls) are allowed!')
+        ]
+    )
+
+
+class ResourceEvaluationForm(FlaskForm):
+    """
+    Form for Evaluator/PMO to provide feedback on a resource.
+    Supports: Pending → Under Evaluation → Selected / Rejected.
+    """
+    evaluation_status = SelectField(
+        'Evaluation Status',
+        choices=[
+            ('pending', '⏳ Pending'),
+            ('under_evaluation', '🔍 Under Evaluation'),
+            ('selected', '✅ Selected'),
+            ('rejected', '❌ Rejected'),
+        ],
+        validators=[DataRequired()]
+    )
+    evaluation_remarks = TextAreaField(
+        'Remarks / Feedback',
+        validators=[Optional(), Length(max=2000)]
+    )

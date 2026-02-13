@@ -10,7 +10,7 @@ os.environ['FLASK_ENV'] = 'testing'
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 
 from app import create_app, db
-from app.models import User, Skill, Demand, Application
+from app.models import User, Skill, Demand, Application, Resource
 
 
 @pytest.fixture
@@ -157,3 +157,102 @@ class TestRoutes:
         resp = client.post('/auth/login', data={'email': 'bad@test.com', 'password': 'wrong'})
         assert resp.status_code == 200
         assert b'Invalid email or password' in resp.data
+
+
+class TestResourceModel:
+    """Tests for the Resource model (bulk upload supply)."""
+
+    def test_create_resource(self, app):
+        with app.app_context():
+            pmo = User(email='pmo@test.com', display_name='PMO', role='pmo')
+            db.session.add(pmo)
+            db.session.flush()
+            demand = Demand(
+                project_name='Test Project',
+                rrd='RRD-RES-001',
+                career_level='10',
+                created_by=pmo.id
+            )
+            db.session.add(demand)
+            db.session.flush()
+            resource = Resource(
+                demand_id=demand.id,
+                name='Jane Doe',
+                personnel_no='EMP001',
+                primary_skill='Python',
+                management_level='TL',
+                home_location='Noida',
+                lock_status='No Lock',
+                availability_status='On bench',
+                email='jane@test.com',
+                contact_details='9876543210',
+                uploaded_by=pmo.id,
+            )
+            db.session.add(resource)
+            db.session.commit()
+            assert resource.id is not None
+            assert resource.evaluation_status == 'pending'
+            assert resource.status_display == 'Pending'
+            assert resource.status_color == 'secondary'
+            assert demand.resource_count == 1
+
+    def test_resource_evaluation(self, app):
+        with app.app_context():
+            pmo = User(email='pmo2@test.com', display_name='PMO2', role='pmo')
+            evaluator = User(email='eval@test.com', display_name='Eval', role='evaluator')
+            db.session.add_all([pmo, evaluator])
+            db.session.flush()
+            demand = Demand(
+                project_name='Eval Project',
+                rrd='RRD-EVAL-001',
+                career_level='11',
+                created_by=pmo.id
+            )
+            db.session.add(demand)
+            db.session.flush()
+            resource = Resource(
+                demand_id=demand.id,
+                name='John Smith',
+                primary_skill='Java',
+                uploaded_by=pmo.id,
+            )
+            db.session.add(resource)
+            db.session.commit()
+
+            # Evaluate the resource
+            resource.evaluation_status = 'selected'
+            resource.evaluation_remarks = 'Strong candidate'
+            resource.evaluated_by = evaluator.id
+            db.session.commit()
+
+            assert resource.evaluation_status == 'selected'
+            assert resource.status_display == 'Selected'
+            assert resource.status_color == 'success'
+            assert resource.evaluator.display_name == 'Eval'
+
+    def test_resource_cascade_delete(self, app):
+        with app.app_context():
+            pmo = User(email='pmo3@test.com', display_name='PMO3', role='pmo')
+            db.session.add(pmo)
+            db.session.flush()
+            demand = Demand(
+                project_name='Cascade Test',
+                rrd='RRD-DEL-001',
+                career_level='9',
+                created_by=pmo.id
+            )
+            db.session.add(demand)
+            db.session.flush()
+            for i in range(3):
+                db.session.add(Resource(
+                    demand_id=demand.id,
+                    name=f'Resource {i}',
+                    uploaded_by=pmo.id,
+                ))
+            db.session.commit()
+            assert demand.resource_count == 3
+
+            # Deleting the demand should cascade-delete resources
+            db.session.delete(demand)
+            db.session.commit()
+            assert Resource.query.count() == 0

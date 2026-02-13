@@ -253,6 +253,11 @@ class Demand(db.Model):
         return self.applications.count()
 
     @property
+    def resource_count(self):
+        """Number of resources uploaded for this demand."""
+        return self.resources.count()
+
+    @property
     def is_open(self):
         """Check if demand is still accepting applications."""
         return self.status in ('open', 'in_progress')
@@ -357,3 +362,82 @@ class ApplicationHistory(db.Model):
 
     def __repr__(self):
         return f'<History App#{self.application_id}: {self.old_status} → {self.new_status}>'
+
+
+# =====================================================
+# RESOURCE MODEL (Supply - Uploaded by PMO)
+# =====================================================
+class Resource(db.Model):
+    """
+    A resource (person) uploaded by PMO against a demand (RRD).
+    Represents the available supply for project staffing.
+    Evaluators review and provide feedback (select/reject).
+    """
+    __tablename__ = 'resources'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # ---------- References ----------
+    demand_id = db.Column(db.Integer, db.ForeignKey('demands.id', ondelete='CASCADE'),
+                          nullable=False, index=True)
+
+    # ---------- Resource Details (from Excel upload) ----------
+    personnel_no = db.Column(db.String(50), nullable=True)
+    name = db.Column(db.String(255), nullable=False)
+    primary_skill = db.Column(db.String(255), nullable=True)
+    management_level = db.Column(db.String(50), nullable=True)
+    home_location = db.Column(db.String(255), nullable=True)
+    lock_status = db.Column(db.String(100), nullable=True)
+    availability_status = db.Column(db.String(100), nullable=True)  # e.g. "On bench"
+    email = db.Column(db.String(255), nullable=True)
+    contact_details = db.Column(db.String(100), nullable=True)
+    joining_date = db.Column(db.String(100), nullable=True)
+
+    # ---------- Evaluation Workflow ----------
+    # Status: pending → under_evaluation → selected / rejected
+    evaluation_status = db.Column(db.String(20), nullable=False, default='pending', index=True)
+    evaluation_remarks = db.Column(db.Text, nullable=True)
+    evaluated_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    evaluated_at = db.Column(db.DateTime, nullable=True)
+
+    # ---------- Metadata ----------
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    uploaded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # ---------- Relationships ----------
+    demand = db.relationship('Demand', backref=db.backref(
+        'resources', lazy='dynamic', cascade='all, delete-orphan'))
+    evaluator = db.relationship('User', foreign_keys=[evaluated_by],
+                                backref='evaluated_resources')
+    uploader = db.relationship('User', foreign_keys=[uploaded_by],
+                               backref='uploaded_resources')
+
+    def __repr__(self):
+        return f'<Resource {self.name} → Demand#{self.demand_id} [{self.evaluation_status}]>'
+
+    @property
+    def status_display(self):
+        """Human-readable evaluation status."""
+        return self.evaluation_status.replace('_', ' ').title()
+
+    @property
+    def status_color(self):
+        """Bootstrap color class for evaluation status badge."""
+        colors = {
+            'pending': 'secondary',
+            'under_evaluation': 'warning',
+            'selected': 'success',
+            'rejected': 'danger',
+        }
+        return colors.get(self.evaluation_status, 'secondary')
+
+    @property
+    def status_icon(self):
+        """Bootstrap icon for evaluation status."""
+        icons = {
+            'pending': 'bi-clock',
+            'under_evaluation': 'bi-hourglass-split',
+            'selected': 'bi-check-circle-fill',
+            'rejected': 'bi-x-circle-fill',
+        }
+        return icons.get(self.evaluation_status, 'bi-question-circle')

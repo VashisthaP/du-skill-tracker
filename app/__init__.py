@@ -123,12 +123,14 @@ def _register_blueprints(app):
     from app.routes.main import main_bp
     from app.routes.demands import demands_bp
     from app.routes.applications import applications_bp
+    from app.routes.resources import resources_bp
     from app.routes.admin import admin_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(main_bp)  # Root URL prefix
     app.register_blueprint(demands_bp, url_prefix='/demands')
     app.register_blueprint(applications_bp, url_prefix='/applications')
+    app.register_blueprint(resources_bp, url_prefix='/resources')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
 

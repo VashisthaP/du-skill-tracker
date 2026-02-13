@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Upload Resources — {{ demand.rrd }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('demands.list_demands') }}">Demands</a></li>
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('demands.detail', demand_id=demand.id) }}">{{ demand.project_name }}</a>
+            </li>
+            <li class="breadcrumb-item active">Upload Resources</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4">
+                    <h4 class="card-title mb-1">
+                        <i class="bi bi-cloud-arrow-up text-purple me-2"></i>Upload Resource List
+                    </h4>
+                    <p class="text-muted mb-0">
+                        Upload an Excel (.xlsx) file with available resources for
+                        <strong>{{ demand.rrd }}</strong> — {{ demand.project_name }}
+                    </p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <!-- File Upload Area -->
+                        <div class="mb-4">
+                            <label for="excel_file" class="form-label fw-semibold">
+                                <i class="bi bi-file-earmark-excel me-1"></i>Excel File
+                            </label>
+                            <div class="upload-area p-4 text-center border border-2 border-dashed rounded-3"
+                                 id="uploadArea"
+                                 style="border-color: #A100FF !important; cursor: pointer;">
+                                <i class="bi bi-cloud-arrow-up display-4 text-purple mb-2"></i>
+                                <p class="mb-1 fw-semibold">Click to select or drag &amp; drop your Excel file</p>
+                                <small class="text-muted">Accepted format: .xlsx</small>
+                                <div id="fileName" class="mt-2 fw-semibold text-success" style="display:none;"></div>
+                                {{ form.excel_file(class="form-control d-none", id="excel_file", accept=".xlsx,.xls") }}
+                            </div>
+                            {% if form.excel_file.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.excel_file.errors %}{{ error }}{% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Expected Format Info -->
+                        <div class="alert alert-light border mb-4">
+                            <h6 class="alert-heading mb-2">
+                                <i class="bi bi-info-circle me-1"></i>Expected Excel Format
+                            </h6>
+                            <p class="small mb-2">
+                                The Excel file should contain the following columns (header row required):
+                            </p>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0 small">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>Description</th>
+                                            <th>Required</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>PERSONNEL_NO / PRE HIRE ID</td>
+                                            <td>Employee / Personnel number</td>
+                                            <td>No</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>NAME</strong></td>
+                                            <td>Full name of the resource</td>
+                                            <td class="text-danger fw-bold">Yes</td>
+                                        </tr>
+                                        <tr>
+                                            <td>EMPLOYEE_PRIMARY_SKILL</td>
+                                            <td>Primary skill (e.g. Java, .NET)</td>
+                                            <td>No</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Management level</td>
+                                            <td>Career level (e.g. AM, TL)</td>
+                                            <td>No</td>
+                                        </tr>
+                                        <tr>
+                                            <td>HOME_LOC</td>
+                                            <td>Base location (e.g. Noida, Hyderabad)</td>
+                                            <td>No</td>
+                                        </tr>
+                                        <tr>
+                                            <td>CURRENT_LOCK_STATUS</td>
+                                            <td>Lock status (e.g. No Lock)</td>
+                                            <td>No</td>
+                                        </tr>
+                                        <tr>
+                                            <td>ROLL_OFF_DATE</td>
+                                            <td>Availability status (e.g. On bench)</td>
+                                            <td>No</td>
+                                        </tr>
+                                        <tr>
+                                            <td>E_MAIL_ADDRESS</td>
+                                            <td>Email address</td>
+                                            <td>No</td>
+                                        </tr>
+                                        <tr>
+                                            <td>CONTACT_DETAILS</td>
+                                            <td>Phone number</td>
+                                            <td>No</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Joining Date (Bench/Joiners)</td>
+                                            <td>Bench joining date</td>
+                                            <td>No</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{{ url_for('demands.detail', demand_id=demand.id) }}"
+                               class="btn btn-outline-secondary">
+                                <i class="bi bi-x-lg me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-accent">
+                                <i class="bi bi-cloud-arrow-up me-1"></i>Upload Resources
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Drag-and-drop + click file upload interaction
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('excel_file');
+const fileNameDisplay = document.getElementById('fileName');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('bg-light');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('bg-light');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('bg-light');
+    if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        showFileName(e.dataTransfer.files[0].name);
+    }
+});
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+        showFileName(fileInput.files[0].name);
+    }
+});
+
+function showFileName(name) {
+    fileNameDisplay.textContent = '\uD83D\uDCCE ' + name;
+    fileNameDisplay.style.display = 'block';
+}
+</script>
+{% endblock %}

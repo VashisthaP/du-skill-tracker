@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% block title %}Resources — {{ demand.rrd }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('demands.list_demands') }}">Demands</a></li>
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('demands.detail', demand_id=demand.id) }}">{{ demand.project_name }}</a>
+            </li>
+            <li class="breadcrumb-item active">Resources</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-start flex-wrap mb-4">
+        <div>
+            <h3 class="page-title mb-1">
+                <i class="bi bi-people-fill text-purple me-2"></i>Available Resources (Supply)
+            </h3>
+            <p class="text-muted mb-0">
+                Supply list for <strong>{{ demand.rrd }}</strong> — {{ demand.project_name }}
+            </p>
+        </div>
+        <div class="d-flex gap-2 mt-2 mt-md-0">
+            {% if current_user.is_pmo %}
+            <a href="{{ url_for('resources.upload', demand_id=demand.id) }}"
+               class="btn btn-accent btn-sm">
+                <i class="bi bi-cloud-arrow-up me-1"></i>Upload More
+            </a>
+            {% endif %}
+            {% if resources %}
+            <a href="{{ url_for('resources.export_excel', demand_id=demand.id) }}"
+               class="btn btn-outline-success btn-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i>Export
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- =====================================================
+         STATUS FILTER CARDS
+    ====================================================== -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md">
+            <a href="{{ url_for('resources.list_resources', demand_id=demand.id) }}"
+               class="text-decoration-none">
+                <div class="card border-0 shadow-sm text-center py-2
+                     {{ 'border-start border-3' if not status_filter }}"
+                     style="{{ 'border-color: #A100FF !important;' if not status_filter }}">
+                    <div class="fw-bold fs-5">{{ stats.total }}</div>
+                    <small class="text-muted">Total</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a href="{{ url_for('resources.list_resources', demand_id=demand.id, status='pending') }}"
+               class="text-decoration-none">
+                <div class="card border-0 shadow-sm text-center py-2
+                     {{ 'border-start border-secondary border-3' if status_filter == 'pending' }}">
+                    <div class="fw-bold fs-5 text-secondary">{{ stats.pending }}</div>
+                    <small class="text-muted">Pending</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a href="{{ url_for('resources.list_resources', demand_id=demand.id, status='under_evaluation') }}"
+               class="text-decoration-none">
+                <div class="card border-0 shadow-sm text-center py-2
+                     {{ 'border-start border-warning border-3' if status_filter == 'under_evaluation' }}">
+                    <div class="fw-bold fs-5 text-warning">{{ stats.under_evaluation }}</div>
+                    <small class="text-muted">In Review</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a href="{{ url_for('resources.list_resources', demand_id=demand.id, status='selected') }}"
+               class="text-decoration-none">
+                <div class="card border-0 shadow-sm text-center py-2
+                     {{ 'border-start border-success border-3' if status_filter == 'selected' }}">
+                    <div class="fw-bold fs-5 text-success">{{ stats.selected }}</div>
+                    <small class="text-muted">Selected</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a href="{{ url_for('resources.list_resources', demand_id=demand.id, status='rejected') }}"
+               class="text-decoration-none">
+                <div class="card border-0 shadow-sm text-center py-2
+                     {{ 'border-start border-danger border-3' if status_filter == 'rejected' }}">
+                    <div class="fw-bold fs-5 text-danger">{{ stats.rejected }}</div>
+                    <small class="text-muted">Rejected</small>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         RESOURCE TABLE
+    ====================================================== -->
+    {% if resources %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Skill</th>
+                            <th>Level</th>
+                            <th>Location</th>
+                            <th>Availability</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in resources %}
+                        <tr>
+                            <td class="text-muted small">{{ r.personnel_no or loop.index }}</td>
+                            <td class="fw-semibold">{{ r.name }}</td>
+                            <td>{{ r.primary_skill or '-' }}</td>
+                            <td>{{ r.management_level or '-' }}</td>
+                            <td><small>{{ r.home_location or '-' }}</small></td>
+                            <td>
+                                <small>
+                                    {% if r.lock_status %}
+                                    <span class="badge bg-{{ 'success' if 'no lock' in r.lock_status|lower else 'warning' }} bg-opacity-25 text-{{ 'success' if 'no lock' in r.lock_status|lower else 'warning' }}">
+                                        {{ r.lock_status }}
+                                    </span>
+                                    {% endif %}
+                                    {% if r.availability_status %}
+                                    <br>{{ r.availability_status }}
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td class="text-nowrap">
+                                {% if r.email %}
+                                <a href="mailto:{{ r.email }}?subject=Opportunity: {{ demand.project_name }} ({{ demand.rrd }})&body=Hi {{ r.name }},%0D%0A%0D%0AWe have an open role that matches your profile:%0D%0A%0D%0AProject: {{ demand.project_name }}%0D%0ARRD: {{ demand.rrd }}%0D%0ASkills: {{ demand.skills|join(', ', attribute='name') }}%0D%0A%0D%0APlease let us know your availability.%0D%0A%0D%0ARegards"
+                                   class="btn btn-sm btn-outline-purple me-1"
+                                   title="Send JD via Email"
+                                   data-bs-toggle="tooltip">
+                                    <i class="bi bi-envelope"></i>
+                                </a>
+                                {% endif %}
+                                {% if r.contact_details %}
+                                <a href="tel:{{ r.contact_details }}"
+                                   class="btn btn-sm btn-outline-secondary"
+                                   title="Call {{ r.contact_details }}"
+                                   data-bs-toggle="tooltip">
+                                    <i class="bi bi-telephone"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ r.status_color }}">{{ r.status_display }}</span>
+                                {% if r.evaluation_remarks %}
+                                <i class="bi bi-chat-dots text-muted ms-1"
+                                   data-bs-toggle="tooltip"
+                                   title="{{ r.evaluation_remarks }}"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-nowrap">
+                                {% if current_user.is_evaluator or current_user.is_pmo or current_user.is_admin %}
+                                <button class="btn btn-sm btn-outline-purple"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#evalModal{{ r.id }}"
+                                        title="Evaluate">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                {% endif %}
+                                {% if current_user.is_pmo %}
+                                <form method="POST"
+                                      action="{{ url_for('resources.delete', resource_id=r.id) }}"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Remove {{ r.name }}?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-sm btn-outline-danger" title="Remove">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         EVALUATION MODALS (one per resource)
+    ====================================================== -->
+    {% for r in resources %}
+    {% if current_user.is_evaluator or current_user.is_pmo or current_user.is_admin %}
+    <div class="modal fade" id="evalModal{{ r.id }}" tabindex="-1"
+         aria-labelledby="evalLabel{{ r.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST"
+                      action="{{ url_for('resources.evaluate', resource_id=r.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="evalLabel{{ r.id }}">
+                            <i class="bi bi-clipboard-check text-purple me-2"></i>
+                            Evaluate: {{ r.name }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Resource summary -->
+                        <div class="bg-light rounded p-3 mb-3">
+                            <div class="row small">
+                                <div class="col-6"><strong>Skill:</strong> {{ r.primary_skill or 'N/A' }}</div>
+                                <div class="col-6"><strong>Level:</strong> {{ r.management_level or 'N/A' }}</div>
+                                <div class="col-6"><strong>Location:</strong> {{ r.home_location or 'N/A' }}</div>
+                                <div class="col-6"><strong>Status:</strong> {{ r.availability_status or 'N/A' }}</div>
+                                {% if r.email %}
+                                <div class="col-12 mt-1">
+                                    <strong>Email:</strong>
+                                    <a href="mailto:{{ r.email }}">{{ r.email }}</a>
+                                </div>
+                                {% endif %}
+                                {% if r.contact_details %}
+                                <div class="col-12">
+                                    <strong>Phone:</strong>
+                                    <a href="tel:{{ r.contact_details }}">{{ r.contact_details }}</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Evaluation Status -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Evaluation Status</label>
+                            <select name="evaluation_status" class="form-select" required>
+                                <option value="pending"
+                                    {{ 'selected' if r.evaluation_status == 'pending' }}>
+                                    ⏳ Pending</option>
+                                <option value="under_evaluation"
+                                    {{ 'selected' if r.evaluation_status == 'under_evaluation' }}>
+                                    🔍 Under Evaluation</option>
+                                <option value="selected"
+                                    {{ 'selected' if r.evaluation_status == 'selected' }}>
+                                    ✅ Selected</option>
+                                <option value="rejected"
+                                    {{ 'selected' if r.evaluation_status == 'rejected' }}>
+                                    ❌ Rejected</option>
+                            </select>
+                        </div>
+
+                        <!-- Remarks -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Remarks / Feedback</label>
+                            <textarea name="evaluation_remarks" class="form-control" rows="3"
+                                      placeholder="Enter your evaluation feedback...">{{ r.evaluation_remarks or '' }}</textarea>
+                        </div>
+
+                        {% if r.evaluator %}
+                        <div class="small text-muted">
+                            <i class="bi bi-person-check me-1"></i>
+                            Last evaluated by {{ r.evaluator.display_name }}
+                            on {{ r.evaluated_at.strftime('%d %b %Y') if r.evaluated_at else 'N/A' }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary"
+                                data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-accent">
+                            <i class="bi bi-check-lg me-1"></i>Save Evaluation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Bulk Actions for PMO -->
+    {% if current_user.is_pmo and resources %}
+    <div class="mt-3">
+        <form method="POST"
+              action="{{ url_for('resources.delete_all', demand_id=demand.id) }}"
+              onsubmit="return confirm('Are you sure you want to remove all {{ stats.total }} resources? This cannot be undone.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash me-1"></i>Clear All Resources
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-people display-4 text-muted"></i>
+            <h5 class="mt-3">No Resources Uploaded Yet</h5>
+            <p class="text-muted">
+                {% if status_filter %}
+                No resources with status "{{ status_filter | replace('_', ' ') | title }}".
+                <a href="{{ url_for('resources.list_resources', demand_id=demand.id) }}">View all</a>
+                {% else %}
+                PMO needs to upload an Excel file with available resources for this RRD.
+                {% endif %}
+            </p>
+            {% if current_user.is_pmo and not status_filter %}
+            <a href="{{ url_for('resources.upload', demand_id=demand.id) }}"
+               class="btn btn-accent">
+                <i class="bi bi-cloud-arrow-up me-1"></i>Upload Resources
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(
+        document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
+    tooltipTriggerList.forEach(function(el) {
+        new bootstrap.Tooltip(el);
+    });
+});
+</script>
+{% endblock %}
