@@ -1,7 +1,7 @@
 # SkillHive – Azure Integration Services Interviewer Guide
 
-**Document Version:** 1.0  
-**Date:** February 12, 2026  
+**Document Version:** 1.1  
+**Date:** February 13, 2026  
 **Project:** SkillHive – DU Demand & Supply Tracker  
 **Purpose:** Interview preparation guide covering all Azure services used in this project  
 
@@ -20,6 +20,7 @@
 9. [Azure Networking & Security in App Service](#9-azure-networking--security-in-app-service)
 10. [Cross-Service Integration Scenarios](#10-cross-service-integration-scenarios)
 11. [Troubleshooting & Real-World Scenarios](#11-troubleshooting--real-world-scenarios)
+12. [Bulk Excel Upload & Resource Evaluation (v1.1)](#12-bulk-excel-upload--resource-evaluation-v11)
 
 ---
 
@@ -1024,4 +1025,420 @@ This makes SkillHive extremely cost-effective for an internal DU tool. Scaling t
 
 ---
 
-*End of Interviewer Guide*
+*End of Original Guide (v1.0 — Q1–Q45)*
+
+---
+
+## 12. Bulk Excel Upload & Resource Evaluation (v1.1)
+
+> **Added:** February 13, 2026 — Questions covering the new PMO bulk-upload and evaluator feedback workflow.
+
+---
+
+### Q46: Explain the Resource Upload feature and the PMO → Evaluator workflow.
+
+**Answer:**  
+SkillHive now supports a **Supply Management** workflow alongside the existing Demand pipeline:
+
+```
+PMO prepares Excel list       PMO uploads Excel         Evaluators review &
+of available resources  ──►  via SkillHive UI      ──►  evaluate resources
+(bench/joiners)              (linked to a Demand/RRD)   (select / reject)
+                                                              │
+                                                              ▼
+                                                     PMO reviews feedback
+                                                     & manages/closes RRD
+```
+
+Workflow steps:
+1. **PMO creates a Demand** with an RRD identifier (e.g., `RRD-2024-001`).
+2. **PMO uploads an Excel file** (`.xlsx`) containing available resources (bench employees, joiners) against that demand.
+3. The system **parses the Excel**, maps columns to model fields using flexible header matching, and stores each row as a `Resource` record linked to the demand.
+4. **Evaluators** see the resource list with contact details — email (mailto: links with pre-filled JD) and phone (tel: links).
+5. Evaluators **open an evaluation modal** and set the status (`Pending → Under Evaluation → Selected / Rejected`) with remarks.
+6. **PMO views** evaluation feedback (status counts, remarks) on the demand detail page and the full resource list.
+7. PMO can **export** the resource list with evaluation data back to Excel.
+
+---
+
+### Q47: How does the Excel parsing and flexible header mapping work?
+
+**Answer:**  
+The upload uses `openpyxl` (already in the project for export) to read the uploaded `.xlsx` file. The key design challenge is that PMOs may use **different header names** for the same column (e.g., `E_MAIL_ADDRESS` vs `EMAIL` vs `E MAIL ADDRESS`).
+
+Solution — a **HEADER_MAP dictionary** with normalized lookup:
+
+```python
+HEADER_MAP = {
+    'PERSONNEL_NO': 'personnel_no',
+    'PRE HIRE ID': 'personnel_no',
+    'PERSONNEL_NO/PRE HIRE ID': 'personnel_no',
+    'NAME': 'name',
+    'EMPLOYEE_PRIMARY_SKILL': 'primary_skill',
+    'EMPLOYEE PRIMARY SKILL': 'primary_skill',
+    'E_MAIL_ADDRESS': 'email',
+    'EMAIL': 'email',
+    'EMAIL ADDRESS': 'email',
+    # ... more mappings
+}
+
+def _match_header(header_text):
+    normalized = header_text.strip().upper()
+    # 1. Exact match
+    if normalized in HEADER_MAP:
+        return HEADER_MAP[normalized]
+    # 2. Partial / contains match (fallback)
+    for key, field in HEADER_MAP.items():
+        if key in normalized or normalized in key:
+            return field
+    return None
+```
+
+Parsing flow:
+1. Read row 1 as headers → build `field_map` (column index → model field).
+2. Iterate remaining rows → build a dict per row using `field_map`.
+3. Skip rows without a `name` value (required field).
+4. Create `Resource` objects and bulk-insert.
+5. Count successes/errors and flash a summary message.
+
+This approach handles real-world Excel files that rarely have perfectly consistent headers.
+
+---
+
+### Q48: Describe the Resource model and its relationship to the Demand model.
+
+**Answer:**  
+The `Resource` model represents an available person (supply) uploaded against a demand (RRD):
+
+```python
+class Resource(db.Model):
+    __tablename__ = 'resources'
+
+    id              = db.Column(db.Integer, primary_key=True)
+    demand_id       = db.Column(db.Integer, ForeignKey('demands.id', ondelete='CASCADE'))
+
+    # From Excel upload
+    personnel_no        = db.Column(db.String(50))
+    name                = db.Column(db.String(255), nullable=False)
+    primary_skill       = db.Column(db.String(255))
+    management_level    = db.Column(db.String(50))
+    home_location       = db.Column(db.String(255))
+    lock_status         = db.Column(db.String(100))
+    availability_status = db.Column(db.String(100))   # e.g. "On bench"
+    email               = db.Column(db.String(255))
+    contact_details     = db.Column(db.String(100))
+    joining_date        = db.Column(db.String(100))
+
+    # Evaluation workflow
+    evaluation_status   = db.Column(db.String(20), default='pending')
+    evaluation_remarks  = db.Column(db.Text)
+    evaluated_by        = db.Column(db.Integer, ForeignKey('users.id'))
+    evaluated_at        = db.Column(db.DateTime)
+
+    # Metadata
+    uploaded_by         = db.Column(db.Integer, ForeignKey('users.id'))
+    uploaded_at         = db.Column(db.DateTime, default=utcnow)
+```
+
+Relationships:
+- **Demand ↔ Resource** — One-to-Many (`demand.resources`, cascade delete)
+- **User ↔ Resource (evaluator)** — Many-to-One (`resource.evaluator`)
+- **User ↔ Resource (uploader)** — Many-to-One (`resource.uploader`)
+
+The `Demand` model gains a `resource_count` property:
+```python
+@property
+def resource_count(self):
+    return self.resources.count()
+```
+
+Database migration (`003_add_resources_table.sql`) creates the table with indexes on `demand_id` and `evaluation_status`.
+
+---
+
+### Q49: Why store `availability_status` and `joining_date` as strings instead of date/datetime?
+
+**Answer:**  
+The Excel data from the PMO contains **mixed-format values** in these columns:
+
+- **ROLL_OFF_DATE column** often contains text like `"On bench"`, `"On notice"`, `"Available from March"` — not actual dates.
+- **Joining Date** may be `"15-Jan-2026"`, `"Not mandatory"`, or blank.
+
+Storing as `VARCHAR(100)` (String) is a deliberate design choice:
+1. **No data loss:** Text values aren't discarded by date parsing failures.
+2. **No upload errors:** PMOs don't need to reformat their Excel files.
+3. **Display-friendly:** Values are shown exactly as the PMO entered them.
+
+If strict date handling is needed later, a migration can parse and split the field into a `Date` column plus a separate `availability_notes` text field.
+
+---
+
+### Q50: How does the evaluation workflow work? Describe the status transitions.
+
+**Answer:**  
+The evaluation follows a simple state machine:
+
+```
+          ┌──────────────────────────────────────┐
+          │                                      │
+    ┌─────▼─────┐     ┌──────────────────┐       │
+    │  Pending   │────►│ Under Evaluation │───┐   │
+    │ (default)  │     └──────────────────┘   │   │
+    └────────────┘              │              │   │
+          │                    │              │   │
+          │         ┌─────────┴─────────┐     │   │
+          │         ▼                   ▼     │   │
+          │   ┌──────────┐      ┌──────────┐  │   │
+          └──►│ Selected │      │ Rejected │◄─┘   │
+              │    ✅     │      │    ❌     │      │
+              └──────────┘      └──────────┘      │
+                   │                  │            │
+                   └──────────────────┴────────────┘
+                     (can be re-evaluated)
+```
+
+Implementation:
+- Evaluator clicks the pencil icon on a resource row → Bootstrap modal opens.
+- Modal pre-selects the current status and shows existing remarks.
+- On submit, a `POST` request to `/resources/<id>/evaluate` updates the record.
+- `evaluated_by` and `evaluated_at` are set to the current user and UTC timestamp.
+- Status is **not locked** — evaluators can change from `rejected` back to `under_evaluation` if needed.
+
+Access control:
+- **PMO, Evaluator, Admin** can evaluate resources.
+- Only **PMO** can upload or delete resources.
+
+---
+
+### Q51: How do the email and phone contact features work for evaluators?
+
+**Answer:**  
+The resource list template provides **clickable contact buttons** so evaluators can quickly reach out to resources:
+
+**Email (mailto: link with pre-filled JD):**
+```html
+<a href="mailto:{{ r.email }}
+    ?subject=Opportunity: {{ demand.project_name }} ({{ demand.rrd }})
+    &body=Hi {{ r.name }},%0D%0A%0D%0A
+    We have an open role that matches your profile:%0D%0A%0D%0A
+    Project: {{ demand.project_name }}%0D%0A
+    RRD: {{ demand.rrd }}%0D%0A
+    Skills: {{ demand.skills|join(', ', attribute='name') }}%0D%0A%0D%0A
+    Please let us know your availability.%0D%0A%0D%0ARegards">
+    <i class="bi bi-envelope"></i>
+</a>
+```
+
+This opens the user's default email client (Outlook) with:
+- **To:** Resource's email address
+- **Subject:** Pre-filled with the project name and RRD
+- **Body:** Pre-filled with a template containing the JD details
+
+**Phone (tel: link):**
+```html
+<a href="tel:{{ r.contact_details }}">
+    <i class="bi bi-telephone"></i>
+</a>
+```
+
+This triggers the dialer on mobile devices or softphone on desktop.
+
+Both buttons use Bootstrap tooltips to show the contact details on hover.
+
+---
+
+### Q52: How does the drag-and-drop file upload work on the upload page?
+
+**Answer:**  
+The upload page uses **native HTML5 Drag-and-Drop API** combined with a hidden `<input type="file">`:
+
+```javascript
+const uploadArea = document.getElementById('uploadArea');
+const fileInput  = document.getElementById('excel_file');
+
+// Click anywhere on the styled area to trigger file picker
+uploadArea.addEventListener('click', () => fileInput.click());
+
+// Drag-over visual feedback
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('bg-light');
+});
+
+// Handle dropped file
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileInput.files = e.dataTransfer.files;  // Assign to input
+    showFileName(e.dataTransfer.files[0].name);
+});
+```
+
+Key points:
+- The actual `<input type="file">` is hidden (`d-none`) — the visible area is a styled `<div>`.
+- `e.preventDefault()` on `dragover` is **required** for `drop` to fire.
+- `fileInput.files = e.dataTransfer.files` assigns the dropped file to the form input so the standard `<form>` submission works.
+- The file name is displayed in a confirmation area after selection.
+- **Server-side validation** via Flask-WTF `FileAllowed(['xlsx', 'xls'])` ensures only Excel files are accepted.
+
+---
+
+### Q53: How does the Resource export to Excel work? How does it differ from the import?
+
+**Answer:**  
+**Export** (read from DB → write to Excel):
+```python
+wb = openpyxl.Workbook()
+ws = wb.active
+ws.title = f'Resources - {demand.rrd}'
+
+# Headers with purple styling
+headers = ['Personnel No', 'Name', 'Primary Skill', ...]
+ws.append(headers)
+for cell in ws[1]:
+    cell.font = Font(bold=True, color='FFFFFF')
+    cell.fill = PatternFill(start_color='A100FF', fill_type='solid')
+
+# Data rows
+for r in resources:
+    ws.append([r.personnel_no, r.name, r.primary_skill, ...
+               r.status_display, r.evaluation_remarks,
+               r.evaluator.display_name if r.evaluator else ''])
+
+# Auto-width columns
+for col in ws.columns:
+    max_len = max(len(str(cell.value or '')) for cell in col) + 2
+    ws.column_dimensions[col[0].column_letter].width = min(max_len, 40)
+
+output = BytesIO()
+wb.save(output)
+output.seek(0)
+return send_file(output, as_attachment=True, download_name=filename)
+```
+
+**Import** (read from Excel → write to DB):
+```python
+wb = openpyxl.load_workbook(file, read_only=True, data_only=True)
+ws = wb.active
+# Map headers, iterate rows, create Resource objects
+```
+
+Key differences:
+
+| Aspect         | Import (Upload)                  | Export (Download)                |
+|----------------|----------------------------------|----------------------------------|
+| **openpyxl mode** | `read_only=True, data_only=True` | Standard write mode             |
+| **Memory**     | Streaming read (low memory)      | Full workbook in memory          |
+| **Direction**  | File → Database                  | Database → File                  |
+| **Headers**    | Flexible matching (HEADER_MAP)   | Fixed, styled headers            |
+| **Extra data** | N/A                              | Adds evaluation status & remarks |
+| **Error handling** | Per-row try/catch, skip bad rows | Simple iteration                |
+
+---
+
+### Q54: How does cascade delete work for resources when a demand is deleted?
+
+**Answer:**  
+When a demand is deleted, all associated resources are automatically removed via **cascade delete** at two levels:
+
+**1. SQLAlchemy ORM level:**
+```python
+# On the Demand model's backref
+demand = db.relationship('Demand', backref=db.backref(
+    'resources', lazy='dynamic', cascade='all, delete-orphan'))
+```
+`cascade='all, delete-orphan'` means:
+- `all` — propagate save, merge, refresh, expunge, delete to children.
+- `delete-orphan` — delete resource if it's removed from `demand.resources`.
+
+**2. Database level (DDL):**
+```python
+demand_id = db.Column(db.Integer,
+    db.ForeignKey('demands.id', ondelete='CASCADE'))
+```
+```sql
+-- In migration
+demand_id INTEGER NOT NULL REFERENCES demands(id) ON DELETE CASCADE
+```
+
+This **defense-in-depth** approach ensures no orphaned resource records remain even if the ORM is bypassed (e.g., raw SQL cleanup). The test suite validates this:
+```python
+def test_resource_cascade_delete(self, app):
+    # Create demand with 3 resources
+    db.session.delete(demand)
+    db.session.commit()
+    assert Resource.query.count() == 0  # All gone
+```
+
+---
+
+### Q55: How would you handle very large Excel files (10,000+ rows) in the upload?
+
+**Answer:**  
+The current implementation works well for typical PMO uploads (tens to hundreds of rows). For 10K+ rows, potential issues and solutions:
+
+**1. Memory — openpyxl `read_only=True`:**  
+Already implemented. This mode uses **streaming/iterating** instead of loading the entire workbook into memory. Memory usage is proportional to one row, not the whole file.
+
+**2. Request Timeout:**
+- Gunicorn timeout is `600s` (10 minutes) — sufficient for most uploads.
+- For very large files, switch to **background processing**:
+  ```python
+  # Option A: Celery + Redis task queue
+  @celery.task
+  def process_upload(file_path, demand_id, user_id):
+      # Parse and insert in batches
+      ...
+  
+  # Option B: Azure Function triggered by Blob upload
+  # 1. Save file to Blob Storage
+  # 2. Azure Function triggers on new blob
+  # 3. Function parses and inserts to DB
+  ```
+
+**3. Database Performance — Batch Inserts:**
+```python
+BATCH_SIZE = 500
+batch = []
+for row in ws.iter_rows(min_row=2):
+    resource = Resource(...)
+    batch.append(resource)
+    if len(batch) >= BATCH_SIZE:
+        db.session.bulk_save_objects(batch)
+        db.session.flush()
+        batch = []
+if batch:
+    db.session.bulk_save_objects(batch)
+db.session.commit()
+```
+
+**4. Client-side Progress:**
+- Use JavaScript `fetch` with `ReadableStream` or WebSocket for upload progress.
+- Show a progress bar during the upload.
+
+**5. Azure App Service Upload Limit:**
+- Default max request body is **30 MB** (configurable via `maxRequestBodySize`).
+- A 10K-row Excel file is typically 1–5 MB, well within limits.
+
+---
+
+### Q56: Compare the new Resource-based evaluation flow to the original Application self-service flow.
+
+**Answer:**  
+
+| Aspect              | Application Flow (Original, Removed) | Resource Flow (New)                   |
+|---------------------|---------------------------------------|---------------------------------------|
+| **Who initiates**   | Resource self-applies                 | PMO uploads resource list             |
+| **Data entry**      | Resource fills web form               | PMO provides Excel from HR/bench data |
+| **Resume**          | Uploaded by resource (.docx/.pptx)    | Not applicable (contact info only)    |
+| **Contact method**  | Evaluator reviews resume              | Email (mailto:) / Phone (tel:) links  |
+| **Scale**           | One-at-a-time                         | Bulk upload (hundreds at once)        |
+| **User burden**     | Each resource must log in & apply     | PMO handles everything centrally      |
+| **Evaluation**      | Status form per application           | Modal per resource (same workflow)    |
+| **JD distribution** | Resource reads demand page            | Evaluator emails JD directly to resource |
+| **Audit trail**     | ApplicationHistory model              | evaluated_by + evaluated_at fields    |
+
+The resource flow is more practical for enterprise staffing where PMOs have bench/joiner lists in Excel and need evaluators to screen candidates before project allocation.
+
+---
+
+*End of Interviewer Guide (v1.1 — Q1–Q56)*
