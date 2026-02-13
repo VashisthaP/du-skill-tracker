@@ -76,6 +76,9 @@ def create_app(config_name=None):
     # ---------- Register Template Context Processors ----------
     _register_context_processors(app)
 
+    # ---------- Register Custom Template Filters ----------
+    _register_template_filters(app)
+
     # ---------- Create Database Tables ----------
     with app.app_context():
         from app import models  # noqa: F401 - Import models so SQLAlchemy knows about them
@@ -144,6 +147,19 @@ def _register_error_handlers(app):
     @app.errorhandler(403)
     def forbidden(e):
         return render_template('errors/404.html', message="Access denied. You don't have permission to view this page."), 403
+
+
+def _register_template_filters(app):
+    """Register custom Jinja2 template filters."""
+    import markupsafe
+
+    @app.template_filter('nl2br')
+    def nl2br_filter(value):
+        """Convert newlines to <br> tags for safe HTML display."""
+        if not value:
+            return ''
+        escaped = markupsafe.escape(value)
+        return markupsafe.Markup(str(escaped).replace('\n', '<br>\n'))
 
 
 def _register_context_processors(app):
