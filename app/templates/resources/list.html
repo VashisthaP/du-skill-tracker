@@ -48,8 +48,8 @@
             <a href="{{ url_for('resources.list_resources', demand_id=demand.id) }}"
                class="text-decoration-none">
                 <div class="card border-0 shadow-sm text-center py-2
-                     {{ 'border-start border-3' if not status_filter }}"
-                     style="{{ 'border-color: #A100FF !important;' if not status_filter }}">
+                     {% if not status_filter %}border-start border-3{% endif %}"
+                     {% if not status_filter %}style="border-color: #A100FF !important;"{% endif %}>
                     <div class="fw-bold fs-5">{{ stats.total }}</div>
                     <small class="text-muted">Total</small>
                 </div>
