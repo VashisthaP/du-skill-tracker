@@ -253,7 +253,7 @@ az webapp ssh --resource-group "rg-skillhive" --name "skillhive-accenture"
 
 ```bash
 cd /home/site/wwwroot
-tar xzf output.tar.gz
+tar --zstd -xf output.tar.zst
 exit
 ```
 
