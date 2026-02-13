@@ -249,8 +249,16 @@ Once Block 1 finishes, SSH into the App Service to extract the Oryx build output
 az webapp ssh --resource-group "rg-skillhive" --name "skillhive-accenture"
 ```
 
-**Inside SSH, run:**
+**Inside SSH, run (check which file exists and use the matching command):**
 
+If `output.tar.gz` exists:
+```bash
+cd /home/site/wwwroot
+tar xzf output.tar.gz
+exit
+```
+
+If `output.tar.zst` exists:
 ```bash
 cd /home/site/wwwroot
 tar --zstd -xf output.tar.zst
