@@ -125,7 +125,7 @@
 </section>
 
 <!-- =====================================================
-     OPEN DEMANDS PREVIEW
+     AVAILABLE RRDS PREVIEW
 ====================================================== -->
 <section class="py-5" id="open-demands">
     <div class="container">
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: skillData.map(s => s.name),
                 datasets: [{
-                    label: 'Number of Open Demands',
+                    label: 'Number of Open RRDs',
                     data: skillData.map(s => s.count),
                     backgroundColor: skillData.map((_, i) =>
                         `rgba(161, 0, 255, ${0.9 - (i * 0.05)})`
