@@ -11,11 +11,6 @@
             </h2>
             <p class="text-muted mb-0">Welcome back, {{ current_user.display_name }}!</p>
         </div>
-        {% if current_user.is_pmo %}
-        <a href="{{ url_for('demands.create') }}" class="btn btn-accent">
-            <i class="bi bi-plus-lg me-1"></i> Raise New Demand
-        </a>
-        {% endif %}
     </div>
 
     <!-- =====================================================
@@ -26,7 +21,7 @@
             <div class="stat-card stat-card-purple">
                 <div class="stat-icon"><i class="bi bi-briefcase-fill"></i></div>
                 <div class="stat-number">{{ stats.open_demands }}</div>
-                <div class="stat-label">Open Demands</div>
+                <div class="stat-label">Open RRDs</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
@@ -47,7 +42,7 @@
             <div class="stat-card stat-card-green">
                 <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
                 <div class="stat-number">{{ stats.filled_demands }}</div>
-                <div class="stat-label">Demands Filled</div>
+                <div class="stat-label">RRDs Filled</div>
             </div>
         </div>
     </div>
@@ -118,7 +113,7 @@
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         <a href="{{ url_for('demands.list_demands') }}" class="btn btn-outline-purple btn-sm text-start">
-                            <i class="bi bi-search me-2"></i>Browse Open Demands
+                            <i class="bi bi-search me-2"></i>Browse Available RRDs
                         </a>
                         {% if current_user.is_pmo or current_user.is_evaluator %}
                         <a href="{{ url_for('applications.manage') }}" class="btn btn-outline-purple btn-sm text-start">
@@ -126,14 +121,11 @@
                         </a>
                         {% endif %}
                         {% if current_user.is_pmo %}
-                        <a href="{{ url_for('demands.create') }}" class="btn btn-accent btn-sm text-start">
-                            <i class="bi bi-plus-lg me-2"></i>Raise New Demand
-                        </a>
                         <a href="{{ url_for('demands.list_demands') }}" class="btn btn-outline-purple btn-sm text-start">
-                            <i class="bi bi-cloud-arrow-up me-2"></i>Upload Resources (via Demand)
+                            <i class="bi bi-cloud-arrow-up me-2"></i>Upload Resources (via RRD)
                         </a>
                         <a href="{{ url_for('demands.export_excel') }}" class="btn btn-outline-success btn-sm text-start">
-                            <i class="bi bi-file-earmark-excel me-2"></i>Export Demands
+                            <i class="bi bi-file-earmark-excel me-2"></i>Export RRDs
                         </a>
                         {% endif %}
                         {% if current_user.is_admin %}
@@ -156,7 +148,7 @@
                 <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="card-title mb-0">
-                            <i class="bi bi-briefcase-fill text-purple me-2"></i>Latest Open Demands
+                            <i class="bi bi-briefcase-fill text-purple me-2"></i>Latest Available RRDs
                         </h5>
                     </div>
                     <a href="{{ url_for('demands.list_demands') }}" class="btn btn-sm btn-outline-purple">
@@ -218,12 +210,7 @@
                     {% else %}
                     <div class="text-center py-5">
                         <i class="bi bi-inbox display-4 text-muted"></i>
-                        <p class="text-muted mt-2">No open demands at the moment.</p>
-                        {% if current_user.is_pmo %}
-                        <a href="{{ url_for('demands.create') }}" class="btn btn-accent btn-sm">
-                            <i class="bi bi-plus-lg me-1"></i> Create First Demand
-                        </a>
-                        {% endif %}
+                        <p class="text-muted mt-2">No available RRDs at the moment.</p>
                     </div>
                     {% endif %}
                 </div>

@@ -220,13 +220,13 @@ class TestResourceModel:
             db.session.commit()
 
             # Evaluate the resource
-            resource.evaluation_status = 'selected'
+            resource.evaluation_status = 'accepted'
             resource.evaluation_remarks = 'Strong candidate'
             resource.evaluated_by = evaluator.id
             db.session.commit()
 
-            assert resource.evaluation_status == 'selected'
-            assert resource.status_display == 'Selected'
+            assert resource.evaluation_status == 'accepted'
+            assert resource.status_display == 'Accepted'
             assert resource.status_color == 'success'
             assert resource.evaluator.display_name == 'Eval'
 

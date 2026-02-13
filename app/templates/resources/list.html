@@ -6,7 +6,7 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('demands.list_demands') }}">Demands</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('demands.list_demands') }}">RRDs</a></li>
             <li class="breadcrumb-item">
                 <a href="{{ url_for('demands.detail', demand_id=demand.id) }}">{{ demand.project_name }}</a>
             </li>
@@ -43,7 +43,7 @@
     <!-- =====================================================
          STATUS FILTER CARDS
     ====================================================== -->
-    <div class="row g-3 mb-4">
+    <div class="row g-2 mb-4">
         <div class="col-6 col-md">
             <a href="{{ url_for('resources.list_resources', demand_id=demand.id) }}"
                class="text-decoration-none">
@@ -76,12 +76,12 @@
             </a>
         </div>
         <div class="col-6 col-md">
-            <a href="{{ url_for('resources.list_resources', demand_id=demand.id, status='selected') }}"
+            <a href="{{ url_for('resources.list_resources', demand_id=demand.id, status='accepted') }}"
                class="text-decoration-none">
                 <div class="card border-0 shadow-sm text-center py-2
-                     {{ 'border-start border-success border-3' if status_filter == 'selected' }}">
-                    <div class="fw-bold fs-5 text-success">{{ stats.selected }}</div>
-                    <small class="text-muted">Selected</small>
+                     {{ 'border-start border-success border-3' if status_filter == 'accepted' }}">
+                    <div class="fw-bold fs-5 text-success">{{ stats.accepted }}</div>
+                    <small class="text-muted">Accepted</small>
                 </div>
             </a>
         </div>
@@ -92,6 +92,36 @@
                      {{ 'border-start border-danger border-3' if status_filter == 'rejected' }}">
                     <div class="fw-bold fs-5 text-danger">{{ stats.rejected }}</div>
                     <small class="text-muted">Rejected</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a href="{{ url_for('resources.list_resources', demand_id=demand.id, status='skill_mismatch') }}"
+               class="text-decoration-none">
+                <div class="card border-0 shadow-sm text-center py-2
+                     {{ 'border-start border-info border-3' if status_filter == 'skill_mismatch' }}">
+                    <div class="fw-bold fs-5 text-info">{{ stats.skill_mismatch }}</div>
+                    <small class="text-muted">Skill Mismatch</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a href="{{ url_for('resources.list_resources', demand_id=demand.id, status='unavailable') }}"
+               class="text-decoration-none">
+                <div class="card border-0 shadow-sm text-center py-2
+                     {{ 'border-start border-dark border-3' if status_filter == 'unavailable' }}">
+                    <div class="fw-bold fs-5 text-dark">{{ stats.unavailable }}</div>
+                    <small class="text-muted">Unavailable</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <a href="{{ url_for('resources.list_resources', demand_id=demand.id, status='already_locked') }}"
+               class="text-decoration-none">
+                <div class="card border-0 shadow-sm text-center py-2
+                     {{ 'border-start border-warning border-3' if status_filter == 'already_locked' }}">
+                    <div class="fw-bold fs-5 text-warning">{{ stats.already_locked }}</div>
+                    <small class="text-muted">Locked</small>
                 </div>
             </a>
         </div>
@@ -245,12 +275,21 @@
                                 <option value="under_evaluation"
                                     {{ 'selected' if r.evaluation_status == 'under_evaluation' }}>
                                     🔍 Under Evaluation</option>
-                                <option value="selected"
-                                    {{ 'selected' if r.evaluation_status == 'selected' }}>
-                                    ✅ Selected</option>
+                                <option value="accepted"
+                                    {{ 'selected' if r.evaluation_status == 'accepted' }}>
+                                    ✅ Accepted</option>
                                 <option value="rejected"
                                     {{ 'selected' if r.evaluation_status == 'rejected' }}>
                                     ❌ Rejected</option>
+                                <option value="skill_mismatch"
+                                    {{ 'selected' if r.evaluation_status == 'skill_mismatch' }}>
+                                    ⚠️ Skill Mismatch</option>
+                                <option value="unavailable"
+                                    {{ 'selected' if r.evaluation_status == 'unavailable' }}>
+                                    🚫 Unavailable</option>
+                                <option value="already_locked"
+                                    {{ 'selected' if r.evaluation_status == 'already_locked' }}>
+                                    🔒 Already Locked to Another DU/Project</option>
                             </select>
                         </div>
 

@@ -50,7 +50,7 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint and 'demands' in request.endpoint %}active{% endif %}"
                            href="{{ url_for('demands.list_demands') }}">
-                            <i class="bi bi-briefcase-fill me-1"></i> Demands
+                            <i class="bi bi-briefcase-fill me-1"></i> RRDs
                         </a>
                     </li>
                     {% if current_user.is_pmo or current_user.is_evaluator %}
@@ -88,11 +88,6 @@
                 <!-- Right side: User info & actions -->
                 <div class="d-flex align-items-center">
                     {% if current_user.is_authenticated %}
-                        {% if current_user.is_pmo %}
-                        <a href="{{ url_for('demands.create') }}" class="btn btn-accent btn-sm me-3">
-                            <i class="bi bi-plus-lg me-1"></i> Raise Demand
-                        </a>
-                        {% endif %}
                         <div class="dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center text-white"
                                href="#" data-bs-toggle="dropdown">

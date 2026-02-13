@@ -186,10 +186,16 @@ def list_resources(demand_id):
             demand_id=demand.id, evaluation_status='pending').count(),
         'under_evaluation': Resource.query.filter_by(
             demand_id=demand.id, evaluation_status='under_evaluation').count(),
-        'selected': Resource.query.filter_by(
-            demand_id=demand.id, evaluation_status='selected').count(),
+        'accepted': Resource.query.filter_by(
+            demand_id=demand.id, evaluation_status='accepted').count(),
         'rejected': Resource.query.filter_by(
             demand_id=demand.id, evaluation_status='rejected').count(),
+        'skill_mismatch': Resource.query.filter_by(
+            demand_id=demand.id, evaluation_status='skill_mismatch').count(),
+        'unavailable': Resource.query.filter_by(
+            demand_id=demand.id, evaluation_status='unavailable').count(),
+        'already_locked': Resource.query.filter_by(
+            demand_id=demand.id, evaluation_status='already_locked').count(),
     }
 
     return render_template(

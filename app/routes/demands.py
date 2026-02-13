@@ -13,7 +13,7 @@ from flask import (
 from flask_login import login_required, current_user
 from sqlalchemy import case
 from app import db
-from app.models import Demand, Skill
+from app.models import Demand, Skill, Application
 from app.forms import DemandForm
 from app.utils.decorators import pmo_required
 from app.services.email_service import send_demand_notification

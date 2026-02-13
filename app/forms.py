@@ -191,15 +191,18 @@ class ResourceUploadForm(FlaskForm):
 class ResourceEvaluationForm(FlaskForm):
     """
     Form for Evaluator/PMO to provide feedback on a resource.
-    Supports: Pending → Under Evaluation → Selected / Rejected.
+    Supports: Pending → Under Evaluation → Accepted / Rejected / Skill Mismatch / Unavailable / Already Locked.
     """
     evaluation_status = SelectField(
         'Evaluation Status',
         choices=[
             ('pending', '⏳ Pending'),
             ('under_evaluation', '🔍 Under Evaluation'),
-            ('selected', '✅ Selected'),
+            ('accepted', '✅ Accepted'),
             ('rejected', '❌ Rejected'),
+            ('skill_mismatch', '⚠️ Skill Mismatch'),
+            ('unavailable', '🚫 Unavailable'),
+            ('already_locked', '🔒 Already Locked to Another DU/Project'),
         ],
         validators=[DataRequired()]
     )

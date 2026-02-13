@@ -1,19 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Browse Demands{% endblock %}
+{% block title %}Available RRDs{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-4 py-4">
     <!-- Page Header -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
-            <h2 class="page-title mb-0"><i class="bi bi-briefcase-fill text-purple me-2"></i>Open Demands</h2>
-            <p class="text-muted mb-0">Browse and filter project demands</p>
+            <h2 class="page-title mb-0"><i class="bi bi-briefcase-fill text-purple me-2"></i>Available RRDs</h2>
+            <p class="text-muted mb-0">Browse and filter available RRDs</p>
         </div>
         <div class="d-flex gap-2">
             {% if current_user.is_pmo %}
-            <a href="{{ url_for('demands.create') }}" class="btn btn-accent btn-sm">
-                <i class="bi bi-plus-lg me-1"></i> Raise Demand
-            </a>
             <a href="{{ url_for('demands.export_excel') }}" class="btn btn-outline-success btn-sm">
                 <i class="bi bi-file-earmark-excel me-1"></i> Export
             </a>
@@ -179,13 +176,8 @@
     {% else %}
     <div class="text-center py-5">
         <i class="bi bi-inbox display-1 text-muted"></i>
-        <h4 class="text-muted mt-3">No demands found</h4>
+        <h4 class="text-muted mt-3">No RRDs found</h4>
         <p class="text-muted">Try adjusting your filters or check back later.</p>
-        {% if current_user.is_pmo %}
-        <a href="{{ url_for('demands.create') }}" class="btn btn-accent mt-2">
-            <i class="bi bi-plus-lg me-1"></i> Create First Demand
-        </a>
-        {% endif %}
     </div>
     {% endif %}
 </div>

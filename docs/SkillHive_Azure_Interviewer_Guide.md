@@ -1,7 +1,7 @@
 # SkillHive – Azure Integration Services Interviewer Guide
 
-**Document Version:** 1.1  
-**Date:** February 13, 2026  
+**Document Version:** 1.2  
+**Date:** February 14, 2026  
 **Project:** SkillHive – DU Demand & Supply Tracker  
 **Purpose:** Interview preparation guide covering all Azure services used in this project  
 
@@ -21,6 +21,7 @@
 10. [Cross-Service Integration Scenarios](#10-cross-service-integration-scenarios)
 11. [Troubleshooting & Real-World Scenarios](#11-troubleshooting--real-world-scenarios)
 12. [Bulk Excel Upload & Resource Evaluation (v1.1)](#12-bulk-excel-upload--resource-evaluation-v11)
+13. [RRD Refactoring & Expanded Evaluation Workflow (v1.2)](#13-rrd-refactoring--expanded-evaluation-workflow-v12)
 
 ---
 
@@ -1441,4 +1442,274 @@ The resource flow is more practical for enterprise staffing where PMOs have benc
 
 ---
 
-*End of Interviewer Guide (v1.1 — Q1–Q56)*
+*End of Section 12 (v1.1 — Q46–Q56)*
+
+---
+
+## 13. RRD Refactoring & Expanded Evaluation Workflow (v1.2)
+
+This section covers the v1.2 changes: renaming "Demands" to "RRDs" across the UI, removing the "Raise a Demand" feature, expanding evaluation statuses from 4 to 7, and fixing a production 500 error caused by a missing model import.
+
+---
+
+### Q57: What is an "RRD" in SkillHive, and why was the UI label changed from "Demands" to "RRDs"?
+
+**Answer:**  
+
+RRD stands for **Resource Request Detail** — the standard term used in enterprise staffing to describe an open requirement with a specific role, skill set, experience band, and project assignment.
+
+The original codebase used the term "Demand" everywhere (navbar, dashboard stats, page titles, breadcrumbs, etc.), but business stakeholders referred to these records as RRDs in day-to-day communication. Renaming the UI to "RRDs" aligns the product with the language users already speak, reducing confusion.
+
+**Key implementation details:**
+- The **database model** is still named `Demand` (no schema migration needed — only UI labels changed).
+- The **route blueprint** is still `demands` — URLs like `/demands/` and `/demands/<id>` remain unchanged.
+- All **template labels** were updated: navbar, dashboard stat cards, breadcrumbs, page titles, hero section, empty-state messages, and "How It Works" steps on the landing page.
+- This demonstrates a common pattern: **decoupling the domain model name from the user-facing label** to reduce refactoring risk while still improving UX.
+
+---
+
+### Q58: The "Raise a Demand" feature was removed from the UI. How was this done, and why keep the backend route?
+
+**Answer:**  
+
+**What was removed:**
+- "Raise Demand" button from the **navbar** (was visible to PMO/Admin users)
+- "Raise New Demand" button from the **dashboard header**
+- "Raise Demand" button from the **demands list page**
+- "Create your first Demand" empty-state link from the **dashboard** and **list page**
+
+**What was kept:**
+- The `demands.create` **Flask route** and the `CreateDemandForm` still exist in the codebase.
+- The `demands/create.html` template is still present.
+
+**Why keep the backend?**
+1. **Admin backdoor**: An admin can still navigate directly to `/demands/new` if manual RRD creation is needed.
+2. **API compatibility**: If a future API or bulk-import script calls the create endpoint, it will work.
+3. **Minimal risk**: Removing UI entry points is sufficient to prevent accidental use. Deleting routes introduces merge conflicts and reduces flexibility.
+4. **Reversibility**: If the business later wants to re-enable self-service RRD creation, it's a one-line template change.
+
+This pattern is called **soft removal** — hide from the UI, keep in the backend, document the decision.
+
+---
+
+### Q59: Describe the expanded evaluation statuses in v1.2. What are they and why were 3 new ones added?
+
+**Answer:**  
+
+**v1.1 statuses (4):** `pending`, `under_evaluation`, `selected`, `rejected`
+
+**v1.2 statuses (7):**
+
+| Status             | Display Label                         | Badge Color | Use Case |
+|--------------------|---------------------------------------|-------------|----------|
+| `pending`          | Pending                               | Secondary   | Resource uploaded, not yet reviewed |
+| `under_evaluation` | Under Evaluation                      | Primary     | Evaluator is actively reviewing |
+| `accepted`         | Accepted                              | Success     | Resource is a good fit (replaced `selected`) |
+| `rejected`         | Rejected                              | Danger      | Resource does not meet requirements |
+| `skill_mismatch`   | Skill Mismatch                        | Info        | Skills don't align with RRD requirements |
+| `unavailable`      | Unavailable                           | Dark        | Resource is not available (on leave, resigned, etc.) |
+| `already_locked`   | Already Locked to Another DU/Project  | Warning     | Resource is committed to another engagement |
+
+**Why the expansion?**
+- `rejected` was a catch-all — evaluators couldn't distinguish *why* someone was rejected.
+- `skill_mismatch` vs `unavailable` vs `already_locked` give clear, actionable reasons that help PMOs take different actions (e.g., reskill, defer, or look for alternatives).
+- `selected` was renamed to `accepted` for clearer semantics — "selected" implies final placement, while "accepted" means the evaluator approves the candidate for the next step.
+
+**Backward compatibility:** The `Resource` model's `status_display`, `status_color`, and `status_icon` properties include a **legacy fallback** for `selected` → maps to "Accepted" / green / check-circle, so any existing database records with `selected` render correctly without a data migration.
+
+---
+
+### Q60: The evaluation_status column is VARCHAR(20). Do the new status values fit? How would you handle it if they didn't?
+
+**Answer:**  
+
+**Current VARCHAR(20) analysis:**
+| Value              | Length |
+|--------------------|--------|
+| `pending`          | 7      |
+| `under_evaluation` | 16     |
+| `accepted`         | 8      |
+| `rejected`         | 8      |
+| `skill_mismatch`   | 14     |
+| `unavailable`      | 11     |
+| `already_locked`   | 14     |
+
+All values fit within VARCHAR(20). No database migration was needed.
+
+**If they didn't fit**, the approach would be:
+1. Create a new migration file (e.g., `004_widen_evaluation_status.sql`).
+2. Use `ALTER TABLE resources ALTER COLUMN evaluation_status TYPE VARCHAR(50);` — PostgreSQL allows widening VARCHAR without rewriting the table.
+3. Run the migration via `scripts/run_migrations.py` with a temporary firewall rule for the Azure PostgreSQL server.
+4. Verify with `SELECT MAX(LENGTH(evaluation_status)) FROM resources;`.
+
+---
+
+### Q61: A 500 error occurred on the demand detail page (/demands/<id>). What was the root cause and how was it fixed?
+
+**Answer:**  
+
+**Symptom:** Visiting any demand detail page returned HTTP 500 (Internal Server Error).
+
+**Root cause:** The `detail()` route in `app/routes/demands.py` used `Application.applied_at.desc()` to sort applications:
+
+```python
+applications = demand.applications.order_by(
+    Application.applied_at.desc()
+).all()
+```
+
+But the `Application` model was **not imported** in the file. The import line was:
+```python
+from app.models import Demand, Skill
+```
+
+This caused a `NameError: name 'Application' is not defined` at runtime.
+
+**Fix:** Added `Application` to the import:
+```python
+from app.models import Demand, Skill, Application
+```
+
+**Why it wasn't caught earlier:**
+- The route was added during the Application workflow phase but the import was missed.
+- Python doesn't validate references at import time — the error only surfaces when the route is actually hit.
+- The test suite tested demand listing (`/demands/`) but not the detail page (`/demands/<id>`).
+
+**Lesson:** Always verify that every model/class referenced in a route is imported. A good practice is to run a linter like `flake8` with the `F821` (undefined name) check enabled.
+
+---
+
+### Q62: How were the filter cards on the resource list page updated for the new statuses?
+
+**Answer:**  
+
+**v1.1 (5 cards):** Total, Pending, In Review, Selected, Rejected
+
+**v1.2 (8 cards):** Total, Pending, In Review, Accepted, Rejected, Skill Mismatch, Unavailable, Locked
+
+Each card shows:
+- A **count** from the stats dictionary (computed in the `list_resources()` route)
+- A **Bootstrap badge color** matching the status
+- An **icon** (Font Awesome) for visual distinction
+- A **clickable filter** that highlights the card and filters the table
+
+The stats dictionary in `resources.py` was expanded:
+```python
+stats = {
+    'total': resources.count(),
+    'pending': resources.filter_by(evaluation_status='pending').count(),
+    'under_evaluation': resources.filter_by(evaluation_status='under_evaluation').count(),
+    'accepted': resources.filter_by(evaluation_status='accepted').count(),
+    'rejected': resources.filter_by(evaluation_status='rejected').count(),
+    'skill_mismatch': resources.filter_by(evaluation_status='skill_mismatch').count(),
+    'unavailable': resources.filter_by(evaluation_status='unavailable').count(),
+    'already_locked': resources.filter_by(evaluation_status='already_locked').count(),
+}
+```
+
+**Performance consideration:** Each `.count()` is a separate SQL query. For large datasets, this could be optimized with a single `GROUP BY evaluation_status` query using `db.session.query(Resource.evaluation_status, func.count()).group_by(Resource.evaluation_status).all()`.
+
+---
+
+### Q63: The evaluation modal in the resource list page now shows 7 status options with emoji indicators. How does this improve UX?
+
+**Answer:**  
+
+The evaluation modal `<select>` was updated from:
+```html
+<option value="selected">✅ Selected</option>
+<option value="rejected">❌ Rejected</option>
+```
+
+To include all 7 statuses with visual emoji indicators:
+```html
+<option value="pending">⏳ Pending</option>
+<option value="under_evaluation">🔍 Under Evaluation</option>
+<option value="accepted">✅ Accepted</option>
+<option value="rejected">❌ Rejected</option>
+<option value="skill_mismatch">🔀 Skill Mismatch</option>
+<option value="unavailable">🚫 Unavailable</option>
+<option value="already_locked">🔒 Already Locked to Another DU/Project</option>
+```
+
+**UX improvements:**
+1. **Emoji prefix** provides instant visual recognition — evaluators can scan options faster.
+2. **Descriptive labels** reduce ambiguity — "Already Locked to Another DU/Project" is self-explanatory.
+3. **All 7 options in one modal** eliminates the need for multiple evaluation steps.
+4. **The evaluator sees the current status pre-selected** when opening the modal, so they know what's already assigned.
+
+---
+
+### Q64: How does legacy data with `selected` status render correctly after the rename to `accepted`?
+
+**Answer:**  
+
+The `Resource` model has three computed properties (`status_display`, `status_color`, `status_icon`) that use dictionary lookups with a **fallback chain**:
+
+```python
+@property
+def status_display(self):
+    status_map = {
+        'pending': 'Pending',
+        'under_evaluation': 'Under Evaluation',
+        'accepted': 'Accepted',
+        'rejected': 'Rejected',
+        'skill_mismatch': 'Skill Mismatch',
+        'unavailable': 'Unavailable',
+        'already_locked': 'Already Locked',
+        'selected': 'Accepted',      # Legacy support
+    }
+    return status_map.get(self.evaluation_status, self.evaluation_status.replace('_', ' ').title())
+```
+
+If `self.evaluation_status == 'selected'`, it returns `'Accepted'` as the display label, `'success'` as the badge color, and `'check-circle'` as the icon — identical to the new `accepted` status.
+
+**This means:**
+- No data migration needed for existing records.
+- A future cleanup migration (`UPDATE resources SET evaluation_status = 'accepted' WHERE evaluation_status = 'selected'`) can be run at any convenient time.
+- The final `.get()` fallback handles any unknown status by formatting the raw string (e.g., `some_future_status` → `Some Future Status`).
+
+---
+
+### Q65: What testing was done to validate the v1.2 changes? What would you add?
+
+**Answer:**  
+
+**Tests executed:**
+- All **17 existing tests** passed after the changes (run via `pytest tests/ -v`).
+- The `test_resource_evaluation` test was updated to use `accepted` instead of `selected`, verifying that `status_display` returns `'Accepted'`.
+- Template rendering was validated visually on the deployed Azure App Service.
+
+**What should be added:**
+1. **Demand detail page test**: A test that hits `/demands/<id>` to prevent the `Application` import regression from recurring.
+2. **All 7 evaluation status tests**: Parameterized test that evaluates a resource with each of the 7 statuses and verifies `status_display`, `status_color`, and `status_icon`.
+3. **Legacy status test**: Test that a resource with `evaluation_status='selected'` still renders as `'Accepted'` with `'success'` color.
+4. **Filter card count test**: API/view test that uploads resources with different statuses and verifies the stats dictionary counts.
+5. **UI regression test** (Selenium/Playwright): Verify that no "Raise Demand" button appears on the dashboard, navbar, or list page.
+
+---
+
+### Q66: Describe the database migration strategy used throughout SkillHive's evolution (v1.0 → v1.1 → v1.2).
+
+**Answer:**  
+
+SkillHive uses a **numbered SQL migration** approach:
+
+| Migration | Version | Description |
+|-----------|---------|-------------|
+| `001_initial.sql` | v1.0 | Initial schema: users, skills, demands, applications, application_history |
+| `002_du_client_to_rrd.sql` | v1.0.1 | Replaced `du_name` + `client_name` columns with single `rrd` field on demands table |
+| `003_create_resources.sql` | v1.1 | Created `resources` table for bulk Excel upload + evaluation workflow |
+| *(none needed)* | v1.2 | No schema changes — all v1.2 changes are UI/code only |
+
+**Migration execution:** Migrations are run via `scripts/run_migrations.py`, which:
+1. Opens a direct `psycopg2` connection to Azure PostgreSQL (since `psql` is not installed locally).
+2. Reads SQL files from `database/migrations/` in order.
+3. Executes each migration idempotently (uses `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`).
+4. Requires a temporary Azure firewall rule (`AllowLocalMigration`) that is removed after execution.
+
+**Why no migration for v1.2?** The new evaluation status values (`skill_mismatch`, `unavailable`, `already_locked`) all fit within the existing `VARCHAR(20)` column, and the `selected` → `accepted` rename is handled at the application layer (legacy fallback in model properties), so no data migration is required.
+
+---
+
+*End of Interviewer Guide (v1.2 — Q1–Q66)*

@@ -418,7 +418,18 @@ class Resource(db.Model):
     @property
     def status_display(self):
         """Human-readable evaluation status."""
-        return self.evaluation_status.replace('_', ' ').title()
+        labels = {
+            'pending': 'Pending',
+            'under_evaluation': 'Under Evaluation',
+            'accepted': 'Accepted',
+            'rejected': 'Rejected',
+            'skill_mismatch': 'Skill Mismatch',
+            'unavailable': 'Unavailable',
+            'already_locked': 'Already Locked',
+            # Legacy support
+            'selected': 'Accepted',
+        }
+        return labels.get(self.evaluation_status, self.evaluation_status.replace('_', ' ').title())
 
     @property
     def status_color(self):
@@ -426,8 +437,13 @@ class Resource(db.Model):
         colors = {
             'pending': 'secondary',
             'under_evaluation': 'warning',
-            'selected': 'success',
+            'accepted': 'success',
             'rejected': 'danger',
+            'skill_mismatch': 'info',
+            'unavailable': 'dark',
+            'already_locked': 'warning',
+            # Legacy support
+            'selected': 'success',
         }
         return colors.get(self.evaluation_status, 'secondary')
 
@@ -437,7 +453,12 @@ class Resource(db.Model):
         icons = {
             'pending': 'bi-clock',
             'under_evaluation': 'bi-hourglass-split',
-            'selected': 'bi-check-circle-fill',
+            'accepted': 'bi-check-circle-fill',
             'rejected': 'bi-x-circle-fill',
+            'skill_mismatch': 'bi-exclamation-triangle-fill',
+            'unavailable': 'bi-person-x-fill',
+            'already_locked': 'bi-lock-fill',
+            # Legacy support
+            'selected': 'bi-check-circle-fill',
         }
         return icons.get(self.evaluation_status, 'bi-question-circle')

@@ -27,7 +27,7 @@
                         <i class="bi bi-box-arrow-in-right me-2"></i>Sign In to Get Started
                     </a>
                     <a href="#open-demands" class="btn btn-outline-light btn-lg px-4">
-                        <i class="bi bi-eye me-2"></i>View Open Demands
+                        <i class="bi bi-eye me-2"></i>View Available RRDs
                     </a>
                 </div>
                 <!-- Quick Stats -->
@@ -35,7 +35,7 @@
                     <div class="col-auto">
                         <div class="hero-stat">
                             <div class="hero-stat-number">{{ stats.open_demands }}</div>
-                            <div class="hero-stat-label">Open Demands</div>
+                            <div class="hero-stat-label">Open RRDs</div>
                         </div>
                     </div>
                     <div class="col-auto">
@@ -100,7 +100,7 @@
                 <div class="how-it-works-card text-center">
                     <div class="how-step-number">1</div>
                     <div class="how-icon"><i class="bi bi-megaphone-fill"></i></div>
-                    <h5>PMO Lists Demands</h5>
+                    <h5>PMO Lists RRDs</h5>
                     <p class="text-muted small">Project Management team lists skill requirements using RRDs, career levels, and evaluator details.</p>
                 </div>
             </div>
@@ -108,8 +108,8 @@
                 <div class="how-it-works-card text-center">
                     <div class="how-step-number">2</div>
                     <div class="how-icon"><i class="bi bi-search"></i></div>
-                    <h5>Evaluators Review</h5>
-                    <p class="text-muted small">Evaluators login to see open demands, review candidate applications, and provide feedback.</p>
+                        <h5>Evaluators Review</h5>
+                    <p class="text-muted small">Evaluators login to see available RRDs, review uploaded resources, and provide evaluation feedback.</p>
                 </div>
             </div>
             <div class="col-md-4">
@@ -117,7 +117,7 @@
                     <div class="how-step-number">3</div>
                     <div class="how-icon"><i class="bi bi-check-circle-fill"></i></div>
                     <h5>Evaluate & Select</h5>
-                    <p class="text-muted small">Evaluators share feedback and update status: Under Evaluation → Selected / Rejected.</p>
+                    <p class="text-muted small">Evaluators evaluate resources and update status: Accepted / Rejected / Skill Mismatch / Unavailable / Already Locked.</p>
                 </div>
             </div>
         </div>
@@ -131,7 +131,7 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="section-title mb-0">Latest Open Demands</h2>
+                <h2 class="section-title mb-0">Latest Available RRDs</h2>
                 <p class="text-muted">Most recent opportunities in the Delivery Unit</p>
             </div>
             <a href="{{ url_for('auth.login') }}" class="btn btn-outline-purple">
@@ -175,7 +175,7 @@
         {% else %}
         <div class="text-center py-5">
             <i class="bi bi-inbox display-1 text-muted"></i>
-            <h4 class="text-muted mt-3">No open demands yet</h4>
+            <h4 class="text-muted mt-3">No available RRDs yet</h4>
             <p class="text-muted">Check back soon for new opportunities!</p>
         </div>
         {% endif %}
