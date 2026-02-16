@@ -391,3 +391,23 @@ class TestResourceModel:
             db.session.delete(demand)
             db.session.commit()
             assert Resource.query.count() == 0
+
+
+class TestBusinessHours:
+    """Tests for business hours access control."""
+
+    def test_business_hours_check_skipped_in_testing(self, client):
+        """Business hours check should be skipped when TESTING=True."""
+        # Should always work in testing mode regardless of time
+        resp = client.get('/')
+        assert resp.status_code == 200
+
+    def test_maintenance_template_renders(self, app):
+        """Maintenance page template should render correctly."""
+        with app.test_request_context():
+            from flask import render_template
+            html = render_template('errors/maintenance.html')
+            assert 'SkillHive' in html
+            assert 'Sleeping' in html
+            assert '8:00 AM' in html
+            assert 'IST' in html
