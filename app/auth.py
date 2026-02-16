@@ -110,8 +110,11 @@ def login():
         if email_sent:
             flash(f'A 6-digit OTP has been sent to {email}. It expires in 10 minutes.', 'info')
         else:
-            flash(f'OTP generated but email delivery failed. Please contact your administrator.', 'warning')
-            # In dev mode, the OTP is logged to console
+            # Emergency fallback: Show OTP on screen for super admin only
+            if user.is_super_admin:
+                flash(f'Email delivery failed. Emergency OTP for super admin: {otp_code}', 'warning')
+            else:
+                flash(f'OTP generated but email delivery failed. Please contact your administrator.', 'warning')
 
         return redirect(url_for('auth.verify_otp'))
 
