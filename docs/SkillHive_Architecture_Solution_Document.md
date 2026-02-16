@@ -1,6 +1,6 @@
 # SkillHive – Functional & Technical Architecture Solution Document
 
-**Document Version:** 1.3.1  
+**Document Version:** 1.4  
 **Date:** February 16, 2026  
 **Project:** SkillHive – DU Demand & Supply Tracker  
 **Classification:** Internal  
@@ -461,13 +461,13 @@ The project includes a comprehensive ARM template (`infrastructure/azuredeploy.j
 
 ### 5.2 Database Models Summary
 
-| Model               | Table                  | Records | Key Fields                                        |
-|----------------------|------------------------|---------|---------------------------------------------------|
-| User                 | `users`                | Dynamic | email, role, is_approved, otp_code, otp_expires_at |
-| Skill                | `skills`               | 48+     | name, category                                    |
-| Demand               | `demands`              | Dynamic | project_name, rrd, career_level, priority, status  |
-| Resource             | `resources`            | Dynamic | demand_id, name, evaluation_status, evaluated_by   |
-| (Association)        | `demand_skills`        | Dynamic | demand_id, skill_id                               |
+| Model               | Table                  | Records | Key Fields                                                    |
+|----------------------|------------------------|---------|---------------------------------------------------------------|
+| User                 | `users`                | Dynamic | email, role, is_approved, otp_code, otp_expires_at            |
+| Skill                | `skills`               | 48+     | name, category                                                |
+| Demand (Project)     | `demands`              | Dynamic | project_name, du_name, client_name, manager_name, rrd, status |
+| Resource             | `resources`            | Dynamic | demand_id, name, evaluation_status, evaluated_by              |
+| (Association)        | `demand_skills`        | Dynamic | demand_id, skill_id                                           |
 
 ### 5.3 Default Skill Taxonomy
 
@@ -515,6 +515,12 @@ The system seeds 30+ default skills across categories:
 | GET/POST| `/demands/<id>/edit`                  | PMO      | Edit existing demand                 |
 | POST    | `/demands/<id>/status`                | PMO      | Update demand status                 |
 | GET     | `/demands/export`                     | PMO      | Export demands to Excel              |
+| GET     | `/resources/`                         | PMO      | Select project for resource upload   |
+| GET/POST| `/resources/create-project`           | PMO      | Create new project (simplified)      |
+| GET/POST| `/resources/upload/<demand_id>`       | PMO      | Upload Excel resources for project   |
+| GET     | `/resources/demand/<demand_id>`       | Login    | List resources for a project         |
+| POST    | `/resources/<id>/evaluate`            | Evaluator| Evaluate a resource                  |
+| GET     | `/resources/export/<demand_id>`       | PMO      | Export resources to Excel            |
 | GET/POST| `/applications/apply/<demand_id>`     | Login    | Apply for a demand                   |
 | GET     | `/applications/my`                    | Login    | My applications list                 |
 | GET     | `/applications/manage`                | Evaluator| Manage all applications              |
@@ -536,8 +542,9 @@ The system seeds 30+ default skills across categories:
 | Demand Created           | Demand raiser (PMO user)      | `DEMAND_CREATED_TEMPLATE`     |
 | Application Received     | Demand raiser + Evaluator     | `APPLICATION_RECEIVED_TEMPLATE`|
 | Status Updated           | Applicant                     | `STATUS_UPDATE_TEMPLATE`      |
+| OTP Login                | User requesting login         | `auth/otp_email.html`         |
 
-- SMTP: Office 365 (port 587, TLS)
+- Email: Azure Communication Services (India data location)
 - HTML email templates with branded styling
 - Graceful failure: email errors logged but don't block workflow
 

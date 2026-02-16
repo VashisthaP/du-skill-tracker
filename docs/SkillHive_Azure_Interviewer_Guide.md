@@ -2526,3 +2526,350 @@ az monitor diagnostic-settings create \
 ---
 
 *End of Interviewer Guide (v1.3.2 — Q1–Q95)*
+
+---
+
+## Section 13: Project Creation & Resource Upload Workflow (Q96–Q105)
+
+> These questions cover the simplified project creation workflow for PMO users to manage resources under projects.
+
+---
+
+### Q96: Explain the project creation workflow in SkillHive v1.4. Why was it simplified?
+
+**Answer:**  
+
+**v1.4 Workflow:**
+1. PMO clicks "Upload Resources" on dashboard
+2. Sees list of existing projects with "Create New Project" button
+3. Creates project with simplified fields: Project Name, DU Name, Client Name, Manager Name, Role Description (optional)
+4. After creation, redirected to upload Excel resources for that project
+5. Resources are uploaded and linked to the project
+
+**Why simplified?**
+
+| Old Workflow                           | New Workflow                          |
+|----------------------------------------|---------------------------------------|
+| Complex demand form with 15+ fields    | 5 fields (4 required, 1 optional)     |
+| Career levels, positions, priorities   | Defaults applied automatically        |
+| Skills required (free-form tags)       | Removed from project creation         |
+| Evaluator info required                | Not needed upfront                    |
+
+**Business reason:** PMO users just wanted to create a project bucket and upload resources quickly. The complex demand form was designed for full RRD tracking but overkill for resource management.
+
+---
+
+### Q97: How is the Demand model used to represent a "Project" in SkillHive?
+
+**Answer:**  
+
+The `Demand` model was repurposed to serve as both an RRD (Resource Request Demand) and a Project container:
+
+```python
+class Demand(db.Model):
+    # Project Information
+    project_name = db.Column(db.String(255), nullable=False)
+    du_name = db.Column(db.String(255), nullable=True)      # NEW in v1.4
+    client_name = db.Column(db.String(255), nullable=True)  # NEW in v1.4
+    manager_name = db.Column(db.String(255), nullable=True) # NEW in v1.4
+    rrd = db.Column(db.String(255), nullable=False)
+    
+    # Auto-set defaults for simplified projects
+    career_level = '11'  # Default SSE
+    num_positions = 1
+    priority = 'medium'
+    status = 'open'
+```
+
+**Trade-off:** Instead of creating a separate `Project` model with a foreign key relationship, we extended the existing `Demand` model. This avoided database migration complexity and maintained backward compatibility.
+
+---
+
+### Q98: Describe the two new routes added for project management.
+
+**Answer:**  
+
+**1. `/resources/` — Project Selection Page**
+```python
+@resources_bp.route('/')
+@login_required
+@pmo_required
+def select_project():
+    # List all projects with pagination and search
+    # Shows project cards with: name, DU, client, manager, resource count
+    # "Create New Project" button leads to creation form
+```
+
+**2. `/resources/create-project` — Simplified Project Creation**
+```python
+@resources_bp.route('/create-project', methods=['GET', 'POST'])
+@login_required
+@pmo_required
+def create_project():
+    form = ProjectForm()
+    if form.validate_on_submit():
+        project = Demand(
+            project_name=form.project_name.data,
+            du_name=form.du_name.data,
+            client_name=form.client_name.data,
+            manager_name=form.manager_name.data,
+            description=form.description.data,
+            rrd=form.project_name.data,  # Auto-set
+            career_level='11',  # Default
+            # ... other defaults
+        )
+        db.session.add(project)
+        db.session.commit()
+        return redirect(url_for('resources.upload', demand_id=project.id))
+```
+
+---
+
+### Q99: What is the ProjectForm and how does it differ from DemandForm?
+
+**Answer:**  
+
+**ProjectForm (New, Simplified):**
+```python
+class ProjectForm(FlaskForm):
+    project_name = StringField('Project Name', validators=[DataRequired()])
+    du_name = StringField('DU Name', validators=[DataRequired()])
+    client_name = StringField('Client Name', validators=[DataRequired()])
+    manager_name = StringField('Manager Name', validators=[DataRequired()])
+    description = TextAreaField('Role / Job Description', validators=[Optional()])
+```
+
+**DemandForm (Original, Complex):**
+- 15+ fields including: project_name, project_code, rrd, skills, career_level, num_positions, start_date, end_date, priority, evaluator_name, evaluator_email, evaluator_contact, description, additional_notes
+- Used for full RRD management with skill tagging and evaluator assignment
+
+**Key differences:**
+| Aspect            | ProjectForm          | DemandForm            |
+|-------------------|----------------------|-----------------------|
+| Fields            | 5                    | 15+                   |
+| Validation        | 4 required           | 8+ required           |
+| Purpose           | Quick project bucket | Full RRD tracking     |
+| Redirect after    | Upload resources     | Demand detail         |
+
+---
+
+### Q100: How did you handle the database migration for the new project fields?
+
+**Answer:**  
+
+**Migration 005:**
+```sql
+-- Migration 005: Add Project Fields to Demands Table
+ALTER TABLE demands ADD COLUMN IF NOT EXISTS du_name VARCHAR(255);
+ALTER TABLE demands ADD COLUMN IF NOT EXISTS client_name VARCHAR(255);
+ALTER TABLE demands ADD COLUMN IF NOT EXISTS manager_name VARCHAR(255);
+```
+
+**Python migration runner:**
+```python
+MIGRATION_005 = """
+ALTER TABLE demands ADD COLUMN IF NOT EXISTS du_name VARCHAR(255);
+ALTER TABLE demands ADD COLUMN IF NOT EXISTS client_name VARCHAR(255);
+ALTER TABLE demands ADD COLUMN IF NOT EXISTS manager_name VARCHAR(255);
+"""
+
+# Check if already applied
+cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'demands' AND column_name = 'du_name';")
+if cur.fetchone() is None:
+    run_migration(conn, "Migration 005", MIGRATION_005)
+```
+
+**Key decisions:**
+- Columns are nullable to maintain backward compatibility with existing demands
+- No foreign key changes needed (extending existing table)
+- Idempotent with `ADD COLUMN IF NOT EXISTS`
+
+---
+
+### Q101: Explain the UI/UX changes made for the "Upload Resources" button.
+
+**Answer:**  
+
+**Before (v1.3.x):**
+```html
+<a href="{{ url_for('demands.list_demands') }}">
+    <i class="bi bi-cloud-arrow-up"></i>Upload Resources (via RRD)
+</a>
+```
+- Clicked → Showed all RRDs list
+- User had to find an RRD → Click into it → Then upload
+- Confusing: "via RRD" unclear to business users
+
+**After (v1.4):**
+```html
+<a href="{{ url_for('resources.select_project') }}">
+    <i class="bi bi-cloud-arrow-up"></i>Upload Resources
+</a>
+```
+- Clicked → Shows project selection with "Create New Project" button
+- Clear visual cards showing project info
+- Direct path: Select project (or create) → Upload resources
+
+**UX improvements:**
+1. Removed jargon "(via RRD)"
+2. Project-centric view instead of demand-centric
+3. One-click "Create New Project" prominent
+4. Search/filter by project name, DU, client, manager
+
+---
+
+### Q102: How do resources relate to projects in the data model?
+
+**Answer:**  
+
+```
+┌──────────────────┐         ┌──────────────────┐
+│     DEMANDS      │         │    RESOURCES     │
+│    (Projects)    │         │                  │
+├──────────────────┤         ├──────────────────┤
+│ id (PK)          │◄────────┤ demand_id (FK)   │
+│ project_name     │   1:N   │ id (PK)          │
+│ du_name          │         │ name             │
+│ client_name      │         │ personnel_no     │
+│ manager_name     │         │ primary_skill    │
+│ description      │         │ evaluation_status│
+│ rrd              │         │ evaluated_by     │
+└──────────────────┘         └──────────────────┘
+```
+
+**Relationship:**
+- One Project (Demand) → Many Resources
+- When project deleted → Resources cascade deleted
+- Resource upload via Excel linked by `demand_id`
+
+**SQLAlchemy:**
+```python
+class Demand(db.Model):
+    resources = db.relationship('Resource', backref='demand', lazy='dynamic',
+                                 cascade='all, delete-orphan')
+```
+
+---
+
+### Q103: What happens when a user creates a project? Walk through the code flow.
+
+**Answer:**  
+
+**Flow:**
+
+1. **User clicks "Create New Project"** → GET `/resources/create-project`
+2. **Render form:** `create_project.html` with `ProjectForm`
+3. **User submits form** → POST `/resources/create-project`
+
+```python
+@resources_bp.route('/create-project', methods=['GET', 'POST'])
+def create_project():
+    form = ProjectForm()
+    
+    if form.validate_on_submit():
+        project = Demand(
+            project_name=form.project_name.data,
+            du_name=form.du_name.data,
+            client_name=form.client_name.data,
+            manager_name=form.manager_name.data,
+            description=form.description.data,
+            rrd=form.project_name.data,  # Auto-set from project name
+            career_level='11',
+            num_positions=1,
+            priority='medium',
+            status='open',
+            created_by=current_user.id,
+        )
+        
+        db.session.add(project)
+        db.session.commit()
+        
+        flash(f'Project "{project.project_name}" created!', 'success')
+        return redirect(url_for('resources.upload', demand_id=project.id))
+    
+    return render_template('resources/create_project.html', form=form)
+```
+
+4. **Redirect to upload:** User immediately sees Excel upload form for their new project
+
+---
+
+### Q104: How would you extend this to support multiple DUs with separate project lists?
+
+**Answer:**  
+
+**Option 1 — DU-based filtering:**
+```python
+@resources_bp.route('/')
+def select_project():
+    # Filter by current user's DU (stored in user profile)
+    du_filter = current_user.du_name
+    query = Demand.query.filter(Demand.du_name == du_filter)
+```
+
+**Option 2 — DU as separate model with foreign key:**
+```python
+class DU(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=True)
+    manager_email = db.Column(db.String(255))
+
+class Demand(db.Model):
+    du_id = db.Column(db.Integer, db.ForeignKey('du.id'))
+```
+
+**Option 3 — Multi-tenant with DU as tenant identifier:**
+- Add `du_id` to all models
+- Apply global query filter based on logged-in user's DU
+- Separate dashboards per DU
+
+**SkillHive current approach:** Single DU with flexible `du_name` field. Multi-tenant would be a v2.0 feature.
+
+---
+
+### Q105: What validation and error handling exists in the project creation flow?
+
+**Answer:**  
+
+**Form Validation (WTForms):**
+```python
+class ProjectForm(FlaskForm):
+    project_name = StringField('Project Name', validators=[
+        DataRequired(message='Project name is required'),
+        Length(max=255)
+    ])
+    du_name = StringField('DU Name', validators=[
+        DataRequired(message='DU name is required'),
+        Length(max=255)
+    ])
+    # ... similar for client_name, manager_name
+```
+
+**Server-side error handling:**
+```python
+try:
+    project = Demand(...)
+    db.session.add(project)
+    db.session.commit()
+except Exception as e:
+    db.session.rollback()
+    current_app.logger.error(f"Error creating project: {e}")
+    flash('An error occurred. Please try again.', 'danger')
+```
+
+**Template validation feedback:**
+```html
+{{ form.project_name(class="form-control" + (" is-invalid" if form.project_name.errors else "")) }}
+{% if form.project_name.errors %}
+<div class="invalid-feedback">{{ form.project_name.errors[0] }}</div>
+{% endif %}
+```
+
+**Covered scenarios:**
+- Missing required fields → Validation errors shown inline
+- Database errors → Rollback + flash message
+- Duplicate projects → No constraint (allowed for flexibility)
+
+---
+
+*End of Interviewer Guide (v1.4 — Q1–Q105)*
