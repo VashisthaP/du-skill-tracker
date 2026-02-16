@@ -1954,3 +1954,292 @@ OTP is already single-factor (something you have — email access). True MFA wou
 ---
 
 *End of Interviewer Guide (v1.3 — Q1–Q76)*
+
+---
+
+## Section 11: Cost Optimization — Business Hours Access Control (v1.3.1)
+
+> **Scenario Context:** The client wants to reduce Azure hosting costs by making the SkillHive portal unavailable during non-business hours (midnight to 8 AM IST). When users try to access the app during these hours, they should see a friendly maintenance message instead of the actual application.
+
+---
+
+### Q77: How would you implement time-based access control in a Flask application to block requests outside business hours?
+
+**Answer:**  
+
+The implementation uses Flask's `before_request` hook, which runs before every request:
+
+```python
+def _register_business_hours_check(app):
+    from datetime import datetime, timedelta, timezone
+    from flask import render_template, request
+
+    # IST is UTC+5:30
+    IST = timezone(timedelta(hours=5, minutes=30))
+    BUSINESS_START_HOUR = 8   # 8:00 AM
+    BUSINESS_END_HOUR = 24    # Midnight
+
+    @app.before_request
+    def check_business_hours():
+        # Skip in dev/testing mode
+        if app.config.get('DEV_MODE') or app.config.get('TESTING'):
+            return None
+
+        # Allow static files
+        if request.path.startswith('/static/'):
+            return None
+
+        now_ist = datetime.now(IST)
+        if now_ist.hour < BUSINESS_START_HOUR:
+            return render_template('errors/maintenance.html'), 503
+
+        return None  # Allow request to continue
+```
+
+**Key design decisions:**
+- **`before_request` hook:** Runs before route handlers, allowing early interception.
+- **Return `None` to allow:** Flask treats `None` as "continue to route handler."
+- **Return response to block:** Returning a tuple `(html, status_code)` short-circuits the request.
+- **503 status code:** "Service Unavailable" is semantically correct for temporary maintenance.
+- **Skip static files:** CSS/JS/images on the maintenance page must still load.
+
+---
+
+### Q78: Why use `datetime.now(IST)` with an explicit timezone instead of `datetime.now()`? What timezone pitfalls should you watch out for?
+
+**Answer:**  
+
+**Why explicit timezone:**
+- `datetime.now()` returns a **naive** datetime (no timezone info) in the server's local timezone.
+- Azure App Service runs on UTC by default, so `datetime.now()` returns UTC time, not IST.
+- Using `datetime.now(IST)` creates a **timezone-aware** datetime in IST regardless of server location.
+
+**Implementation:**
+```python
+from datetime import datetime, timedelta, timezone
+
+# Define IST as UTC+5:30
+IST = timezone(timedelta(hours=5, minutes=30))
+
+# This is always in IST, regardless of server timezone
+now_ist = datetime.now(IST)
+```
+
+**Pitfalls to avoid:**
+1. **Relying on server timezone:** Azure App Service defaults to UTC; don't assume IST.
+2. **Naive vs. aware comparison:** Mixing naive and aware datetimes raises `TypeError`.
+3. **DST confusion:** IST doesn't observe DST, but other timezones do — always use `timezone` objects, not magic strings.
+4. **`pytz` vs. `zoneinfo`:** Python 3.9+ has `zoneinfo` for named timezones, but for simple fixed offsets, `timezone(timedelta(...))` is sufficient.
+
+---
+
+### Q79: What HTTP status code should the maintenance page return, and why does it matter for SEO and monitoring?
+
+**Answer:**  
+
+**Recommended: 503 Service Unavailable**
+
+| Status Code | Meaning                               | Impact                                      |
+|-------------|---------------------------------------|---------------------------------------------|
+| **200 OK**  | Success                               | Search engines index maintenance page as content — BAD |
+| **503**     | Service Unavailable (temporary)       | Search engines know to retry later — GOOD    |
+| **500**     | Internal Server Error                 | Indicates a bug — alerts fire — BAD          |
+| **403**     | Forbidden                             | Implies auth failure — wrong semantics       |
+
+**Why 503 matters:**
+- **Search engines:** Google respects 503 and will retry the original URL later. Returning 200 would make Google think the maintenance page *is* your content.
+- **Monitoring:** Application Insights / Log Analytics can alert on 5xx spikes. 503 during known maintenance windows can be excluded from alerts via KQL filtering.
+- **Retry-After header (optional):** You can include `Retry-After: 28800` (8 hours in seconds) to tell clients when to retry.
+
+---
+
+### Q80: How does skipping `DEV_MODE` and `TESTING` in the business hours check help development and testing workflows?
+
+**Answer:**  
+
+```python
+if app.config.get('DEV_MODE') or app.config.get('TESTING'):
+    return None  # Skip business hours check
+```
+
+**Development benefits:**
+- Developers can access the app at any time during local development.
+- `DEV_MODE=true` is set in development config, so `flask run` at 2 AM still works.
+- No need to mock the system clock or modify code for off-hours work.
+
+**Testing benefits:**
+- `TESTING=True` is set by the pytest fixture.
+- All 27 tests pass regardless of what time the CI/CD pipeline runs.
+- Tests don't need to stub `datetime.now()` — the check is simply bypassed.
+
+**Production safety:**
+- In production, `DEV_MODE` is false (not set in Azure App Settings).
+- The check runs only in production, where cost savings matter.
+
+---
+
+### Q81: What are the trade-offs of implementing business hours at the application layer vs. using Azure's built-in auto-stop features?
+
+**Answer:**  
+
+| Approach                          | Pros                                        | Cons                                           |
+|-----------------------------------|---------------------------------------------|------------------------------------------------|
+| **App-layer `before_request`**    | Instant response, custom UX, no cold start  | App still running (still costs compute)        |
+| **Azure App Service Stop/Start**  | Zero compute cost when stopped              | ~30-60s cold start when restarting             |
+| **Azure Automation Runbooks**     | Scheduled stop/start, zero compute          | Complex setup, delayed restart                 |
+| **Always On = Off + Traffic-based**| Auto-stop after idle, auto-restart on hit  | Cold starts, not truly "blocked"               |
+
+**Why SkillHive uses app-layer:**
+1. **User experience:** Users see a friendly page immediately, not a connection timeout.
+2. **Zero cold start:** App stays "warm" — when 8 AM hits, requests are instant.
+3. **Simpler implementation:** No Automation Accounts, Logic Apps, or scheduled tasks.
+4. **Partial cost savings:** DB connections are idle during maintenance, reducing DTU usage.
+
+**Hybrid approach (future enhancement):**
+- Use app-layer check for UX during maintenance.
+- Additionally, scale App Service Plan to B1 (1 instance) during off-hours via Automation.
+- Scale back to S1 (auto-scale) during business hours.
+
+---
+
+### Q82: How would you allow admin users to bypass the business hours restriction for emergency access?
+
+**Answer:**  
+
+**Option 1 — Session-based bypass (simple):**
+```python
+@app.before_request
+def check_business_hours():
+    from flask_login import current_user
+
+    # Allow authenticated admins through
+    if current_user.is_authenticated and current_user.is_admin:
+        return None
+
+    # Regular business hours check follows...
+```
+**Problem:** Can't log in if blocked before login page!
+
+**Option 2 — Query parameter with secret key:**
+```python
+BYPASS_KEY = os.environ.get('MAINTENANCE_BYPASS_KEY', 'secret123')
+
+@app.before_request
+def check_business_hours():
+    # Allow bypass with secret key
+    if request.args.get('bypass') == BYPASS_KEY:
+        session['bypass_maintenance'] = True
+
+    if session.get('bypass_maintenance'):
+        return None
+
+    # Regular check...
+```
+**Usage:** `https://skillhive.../auth/login?bypass=secret123`
+
+**Option 3 — IP allowlist:**
+```python
+ALLOWED_IPS = ['10.0.0.1', '192.168.1.100']  # Admin VPN IPs
+
+@app.before_request
+def check_business_hours():
+    if request.remote_addr in ALLOWED_IPS:
+        return None
+```
+
+**Recommended for SkillHive:** Option 2 (query param) for simplicity + Option 1 for logged-in admins.
+
+---
+
+### Q83: What monitoring or alerting would you set up around the business hours feature?
+
+**Answer:**  
+
+**Metrics to track:**
+1. **503 response count:** Should spike at midnight, drop to zero at 8 AM.
+2. **Request count during maintenance:** Should be near-zero (only blocked requests).
+3. **Time-of-day distribution:** Validate that no legitimate traffic is blocked.
+
+**Azure Application Insights KQL query:**
+```kusto
+requests
+| where resultCode == 503
+| summarize count() by bin(timestamp, 1h)
+| render timechart
+```
+
+**Alerts to configure:**
+- **Unexpected 503 during business hours:** If 503s occur between 8 AM – midnight, something is wrong.
+- **High 503 volume during maintenance:** If many users are being blocked, consider extending hours.
+
+**Log entry in app:**
+```python
+app.logger.info(
+    f"Access blocked outside business hours: "
+    f"{now_ist.strftime('%Y-%m-%d %H:%M:%S')} IST"
+)
+```
+This creates a traceable audit trail in Application Insights for each blocked request.
+
+---
+
+### Q84: How would you make the business hours configurable without redeploying the application?
+
+**Answer:**  
+
+**Option 1 — Azure App Settings (recommended):**
+```python
+BUSINESS_START_HOUR = int(os.environ.get('BUSINESS_START_HOUR', 8))
+BUSINESS_END_HOUR = int(os.environ.get('BUSINESS_END_HOUR', 24))
+```
+
+**Set in Azure Portal:**
+- App Service → Configuration → Application Settings
+- `BUSINESS_START_HOUR = 8`
+- `BUSINESS_END_HOUR = 24`
+
+**Option 2 — Database configuration table:**
+```sql
+CREATE TABLE app_config (
+    key VARCHAR(100) PRIMARY KEY,
+    value VARCHAR(255)
+);
+INSERT INTO app_config VALUES ('business_start_hour', '8');
+INSERT INTO app_config VALUES ('business_end_hour', '24');
+```
+
+**Option 3 — Azure App Configuration service:**
+- Managed key-value store with feature flags.
+- Real-time updates without restart.
+- Integrated with Python SDK (`azure-appconfiguration`).
+
+**SkillHive's approach:** Currently hardcoded for simplicity. App Settings would be the first refactor for multi-client deployments.
+
+---
+
+### Q85: Explain the cost savings model for business hours access control. What components of Azure are affected?
+
+**Answer:**  
+
+**Cost components in SkillHive's architecture:**
+
+| Component                    | During Business Hours       | During Maintenance         | Savings                      |
+|------------------------------|-----------------------------|----------------------------|------------------------------|
+| **App Service (B1)**         | Active, serving requests    | Active, but idle           | Minimal (still running)      |
+| **PostgreSQL Flexible (B1ms)**| Active connections          | Idle connections           | ~10-20% DTU/vCore savings    |
+| **Blob Storage**             | No difference               | No difference              | None (storage is static)     |
+| **Application Insights**     | Logging requests            | Logging 503s (minimal)     | Minor reduction in log volume|
+| **Outbound bandwidth**       | Full HTML pages             | Small maintenance page     | Minor savings                |
+
+**Estimated monthly savings (B1 plan):**
+- App Service B1: ~$13/month → No direct savings (still running)
+- PostgreSQL B1ms: ~$15/month → ~$2-3/month savings (idle connections)
+- **Total:** ~15-20% reduction in database costs
+
+**To maximize savings (future):**
+- Use Azure Automation to **stop** the App Service Plan during maintenance → **~33% savings on compute**.
+- Use PostgreSQL serverless tier (when available) → **near-zero cost when idle**.
+
+---
+
+*End of Interviewer Guide (v1.3.1 — Q1–Q85)*

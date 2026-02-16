@@ -1,7 +1,7 @@
 # SkillHive – Functional & Technical Architecture Solution Document
 
-**Document Version:** 1.0  
-**Date:** February 12, 2026  
+**Document Version:** 1.3  
+**Date:** February 16, 2026  
 **Project:** SkillHive – DU Demand & Supply Tracker  
 **Classification:** Internal  
 
@@ -19,6 +19,7 @@
 8. [Deployment Architecture](#8-deployment-architecture)
 9. [Non-Functional Requirements](#9-non-functional-requirements)
 10. [Technology Stack Summary](#10-technology-stack-summary)
+11. [Cost Optimization Strategy](#11-cost-optimization-strategy)
 
 ---
 
@@ -31,20 +32,22 @@ SkillHive is an enterprise-grade web portal designed for Delivery Unit (DU) leve
 ### 1.2 Business Problem
 
 - PMO teams lack a centralized, self-service platform to raise project resource demands with specific skill requirements.
-- Resources (employees) have no visibility into open demands matching their skill set.
 - Evaluators/managers spend significant time coordinating demand-to-resource matching manually via emails and spreadsheets.
-- No audit trail exists for application status transitions.
+- No audit trail exists for resource evaluation status transitions.
+- Cloud costs can accumulate even during non-business hours when no users are active.
 
 ### 1.3 Solution Overview
 
 SkillHive provides:
-- A **Demand Management** module for PMO teams to publish resource requirements with skill tags.
-- A **Self-Service Application** module for resources to apply for open demands.
-- An **Evaluation Workflow** with status tracking (Applied → Under Evaluation → Selected/Rejected).
+- A **Demand Management** module for PMO teams to publish resource requirements (RRDs) with skill tags.
+- A **Resource Bulk Upload** module for PMO to upload available supply via Excel.
+- An **Evaluation Workflow** with comprehensive status tracking (7 statuses: Pending → Under Evaluation → Accepted / Rejected / Skill Mismatch / Unavailable / Already Locked).
 - A **Trending Skill Cloud** for real-time skill demand analytics.
-- **Excel Export** capabilities for reporting.
-- **Email Notifications** at every workflow stage.
+- **Excel Import/Export** capabilities for data management.
+- **OTP-based Authentication** restricted to @accenture.com emails with admin approval workflow.
+- **Super Admin** role for comprehensive user management (add, approve, revoke, delete).
 - **Admin Panel** for user management and system-wide statistics.
+- **Business Hours Access Control** to reduce Azure costs outside working hours.
 
 ---
 
@@ -56,17 +59,17 @@ SkillHive provides:
 ┌─────────────────────────────────────────────────────────────────┐
 │                     SkillHive Portal                            │
 ├──────────┬──────────┬──────────┬──────────┬─────────────────────┤
-│  Auth    │  Demand  │ Applica- │  Admin   │   Analytics &       │
-│  Module  │  Mgmt    │  tions   │  Panel   │   Reporting         │
+│  Auth    │  Demand  │ Resource │  Admin   │   Analytics &       │
+│  Module  │  Mgmt    │  Mgmt    │  Panel   │   Reporting         │
 ├──────────┼──────────┼──────────┼──────────┼─────────────────────┤
-│• Login   │• Create  │• Apply   │• User    │• Skill Cloud        │
-│• Logout  │• Edit    │• Track   │  Mgmt    │• Dashboard Stats    │
-│• Session │• List    │• Review  │• Role    │• Excel Export       │
-│  Mgmt    │• Filter  │• Status  │  Assign  │• Demand Trends      │
-│• Role    │• Search  │  Update  │• System  │• Priority Analytics  │
-│  Based   │• Export  │• Resume  │  Stats   │• Career Level Stats  │
-│  Access  │• Status  │  Upload  │• Skill   │                     │
-│          │  Mgmt    │• History │  Mgmt    │                     │
+│• OTP     │• Create  │• Bulk    │• User    │• Skill Cloud        │
+│  Login   │• Edit    │  Upload  │  Mgmt    │• Dashboard Stats    │
+│• Email   │• List    │• Evaluate│• User    │• Excel Export       │
+│  Verify  │• Filter  │• Track   │  Approval│• Demand Trends      │
+│• Session │• Search  │  Status  │• Role    │• Priority Analytics │
+│  Mgmt    │• Export  │• Export  │  Assign  │• Career Level Stats │
+│• Admin   │• Status  │          │• Add/    │                     │
+│  Approval│  Mgmt    │          │  Delete  │                     │
 └──────────┴──────────┴──────────┴──────────┴─────────────────────┘
 ```
 
@@ -74,26 +77,27 @@ SkillHive provides:
 
 | Role         | Code         | Permissions                                                          |
 |--------------|--------------|----------------------------------------------------------------------|
-| Administrator| `admin`      | Full access: user management, demand CRUD, application review, system configuration |
-| PMO Team     | `pmo`        | Create/edit/manage demands, review applications, export data, update statuses |
-| Evaluator    | `evaluator`  | Review applications, update application status, download resumes      |
-| Resource     | `resource`   | View open demands, apply for evaluation, track own applications       |
+| Super Admin  | `admin`      | Full access: all admin privileges + add/delete users, manage super admin |
+| Administrator| `admin`      | Full access: user management (excluding add/delete), demand CRUD, system configuration |
+| PMO Team     | `pmo`        | Create/edit/manage RRDs, upload resources, export data               |
+| Evaluator    | `evaluator`  | Review resources, update evaluation status, download resumes         |
+| Resource     | `resource`   | View open RRDs (limited access)                                      |
 
 ### 2.3 Core Workflows
 
-#### 2.3.1 Demand Lifecycle
+#### 2.3.1 Demand (RRD) Lifecycle
 
 ```
                     ┌─────────┐
                     │  PMO    │
                     │ Creates │
-                    │ Demand  │
+                    │   RRD   │
                     └────┬────┘
                          │
                     ┌────▼────┐
                     │  OPEN   │◄────────────────────┐
                     └────┬────┘                     │
-                         │ Resource Applies         │ Reopen
+                         │ Resources Uploaded       │ Reopen
                     ┌────▼────────┐                 │
                     │ IN_PROGRESS │─────────────────►┘
                     └────┬────────┘
@@ -105,45 +109,79 @@ SkillHive provides:
          └────────┘          └───────────┘
 ```
 
-#### 2.3.2 Application Workflow
+#### 2.3.2 Resource Evaluation Workflow
 
 ```
-   Resource            PMO/Evaluator
+   PMO                    Evaluator
       │                      │
-      │  Submit Application  │
+      │  Upload Resources    │
+      │  (Excel bulk)        │
       ├─────────────────────►│
       │                      │
-      │    Status: APPLIED   │
+      │   Status: PENDING    │
       │◄─────────────────────┤
       │                      │
-      │  UNDER EVALUATION    │
+      │   UNDER_EVALUATION   │
       │◄─────────────────────┤
       │                      │
-      │   SELECTED           │
+      │   Final Status:      │
+      │   ├── ACCEPTED       │
+      │   ├── REJECTED       │
+      │   ├── SKILL_MISMATCH │
+      │   ├── UNAVAILABLE    │
+      │   └── ALREADY_LOCKED │
       │◄─────────────────────┤
-      │       or             │
-      │   REJECTED           │
-      │◄─────────────────────┤
-      │                      │
-  [Email Notification at each status change]
+```
+
+#### 2.3.3 OTP Authentication Flow
+
+```
+   User                    System                   Admin
+     │                        │                        │
+     │ Enter @accenture.com   │                        │
+     │ email                  │                        │
+     ├───────────────────────►│                        │
+     │                        │                        │
+     │   Check: User exists?  │                        │
+     │   Check: is_approved?  │                        │
+     │   Check: is_active?    │                        │
+     │◄───────────────────────┤                        │
+     │                        │                        │
+     │   Generate 6-digit OTP │                        │
+     │   (10 min expiry)      │                        │
+     │◄───────────────────────┤                        │
+     │                        │                        │
+     │   Send OTP via email   │                        │
+     │◄───────────────────────┤                        │
+     │                        │                        │
+     │ Enter OTP code         │                        │
+     ├───────────────────────►│                        │
+     │                        │                        │
+     │   Verify OTP + Login   │                        │
+     │◄───────────────────────┤                        │
+     │                        │                        │
+     │ [If not approved]      │  Approve User          │
+     │─────────────────────────────────────────────────►
 ```
 
 ### 2.4 Functional Features Detail
 
 | # | Feature                    | Description                                                                                           |
 |---|----------------------------|-------------------------------------------------------------------------------------------------------|
-| 1 | Demand Creation            | PMO creates demands with project info, skills (tag input), career level, priority, evaluator details  |
+| 1 | RRD Creation               | PMO creates RRDs with project info, skills (tag input), career level, priority, evaluator details    |
 | 2 | Skill Tag Input            | Interactive tag-based skill selection with autocomplete from skill taxonomy + custom skill entry       |
-| 3 | Demand Filtering           | Filter by status, priority, career level, skill; Text search across project names                     |
-| 4 | Demand Pagination          | 12 demands per page with paginated navigation                                                         |
-| 5 | Application Submission     | Resources fill form (name, EID, experience, skills) + upload resume (.docx/.pptx)                     |
-| 6 | Application Status Tracking| Full audit trail with ApplicationHistory model recording every status change                          |
-| 7 | Resume Management          | Local storage (dev) / Azure Blob Storage (prod) with unique filename generation                       |
-| 8 | Email Notifications        | SMTP-based notifications for demand creation, application received, status updates                    |
-| 9 | Excel Export               | Formatted .xlsx export for demands and applications with branded styling                              |
-| 10| Trending Skill Cloud       | Real-time skill demand cloud visualization using Chart.js                                             |
-| 11| Dashboard                  | Role-based dashboard with KPIs, charts, latest demands, personal application tracker                  |
-| 12| Admin Panel                | User management (CRUD, role assignment), system statistics, skill management                          |
+| 3 | RRD Filtering              | Filter by status, priority, career level, skill; Text search across project names                     |
+| 4 | RRD Pagination             | 12 RRDs per page with paginated navigation                                                            |
+| 5 | Resource Bulk Upload       | PMO uploads Excel with resource data (Personnel No, Name, Skills, Location, etc.)                    |
+| 6 | Resource Evaluation        | Evaluators review resources with 7 distinct status outcomes + remarks                                 |
+| 7 | OTP Authentication         | Passwordless login via 6-digit OTP sent to @accenture.com email                                       |
+| 8 | User Approval Workflow     | New users require admin approval before they can log in                                               |
+| 9 | Super Admin Management     | Designated super admin can add/delete users and assign admin roles                                    |
+| 10| Excel Import/Export        | Formatted .xlsx import for resources, export for RRDs and resources with branded styling              |
+| 11| Trending Skill Cloud       | Real-time skill demand cloud visualization using Chart.js                                             |
+| 12| Dashboard                  | Role-based dashboard with KPIs, charts, latest RRDs, pending approvals                               |
+| 13| Admin Panel                | User management (CRUD, role assignment, approval), system statistics, skill management               |
+| 14| Business Hours Access      | Portal accessible 8 AM – 12 AM IST; friendly maintenance page outside hours                          |
 
 ---
 
@@ -349,72 +387,60 @@ The project includes a comprehensive ARM template (`infrastructure/azuredeploy.j
 ### 5.1 Entity Relationship Diagram
 
 ```
-┌──────────────┐       ┌───────────────────┐       ┌──────────────┐
-│    USERS     │       │  DEMAND_SKILLS    │       │    SKILLS    │
-├──────────────┤       │  (Association)    │       ├──────────────┤
-│ id (PK)      │       ├───────────────────┤       │ id (PK)      │
-│ email        │       │ demand_id (FK)    │──────►│ name         │
-│ display_name │       │ skill_id (FK)     │       │ category     │
-│ password_hash│       └───────────────────┘       │ created_at   │
-│ enterprise_id│               ▲                   └──────────────┘
-│ role         │               │
-│ is_active    │       ┌───────┴──────┐
-│ created_at   │       │   DEMANDS    │
-│ updated_at   │       ├──────────────┤
-└──────┬───────┘       │ id (PK)      │
-       │               │ project_name │
-       │ created_by    │ project_code │
-       │(FK)           │ du_name      │
-       │               │ client_name  │
-       ├──────────────►│ career_level │
-       │               │ num_positions│
-       │               │ priority     │
-       │               │ status       │
-       │               │ evaluator_*  │
-       │               │ description  │
-       │               │ created_by(FK)│
-       │               │ created_at   │
-       │               └──────┬───────┘
-       │                      │ 1:N
-       │               ┌──────▼───────────┐
-       │ user_id (FK)  │  APPLICATIONS    │
-       ├──────────────►├──────────────────┤
-       │               │ id (PK)          │
-       │               │ demand_id (FK)   │
-       │               │ user_id (FK)     │
-       │               │ applicant_name   │
-       │               │ enterprise_id    │
-       │               │ skills_text      │
-       │               │ resume_filename  │
-       │               │ resume_blob_url  │
-       │               │ status           │
-       │               │ remarks          │
-       │               │ applied_at       │
-       │               └──────┬───────────┘
-       │                      │ 1:N
-       │               ┌──────▼───────────────┐
-       │ changed_by(FK)│ APPLICATION_HISTORY  │
-       └──────────────►├──────────────────────┤
-                       │ id (PK)              │
-                       │ application_id (FK)  │
-                       │ old_status           │
-                       │ new_status           │
-                       │ changed_by (FK)      │
-                       │ remarks              │
-                       │ changed_at           │
-                       └──────────────────────┘
+┌──────────────────┐       ┌───────────────────┐       ┌──────────────┐
+│      USERS       │       │  DEMAND_SKILLS    │       │    SKILLS    │
+├──────────────────┤       │  (Association)    │       ├──────────────┤
+│ id (PK)          │       ├───────────────────┤       │ id (PK)      │
+│ email            │       │ demand_id (FK)    │──────►│ name         │
+│ display_name     │       │ skill_id (FK)     │       │ category     │
+│ password_hash    │       └───────────────────┘       │ created_at   │
+│ enterprise_id    │               ▲                   └──────────────┘
+│ role             │               │
+│ is_active        │       ┌───────┴──────┐
+│ is_approved      │       │   DEMANDS    │
+│ otp_code         │       ├──────────────┤
+│ otp_expires_at   │       │ id (PK)      │
+│ last_login_at    │       │ project_name │
+│ created_at       │       │ rrd          │
+│ updated_at       │       │ career_level │
+└──────┬───────────┘       │ num_positions│
+       │                   │ priority     │
+       │ created_by        │ status       │
+       │(FK)               │ evaluator_*  │
+       │                   │ description  │
+       ├──────────────────►│ created_by(FK)│
+       │                   │ created_at   │
+       │                   └──────┬───────┘
+       │                          │ 1:N
+       │                   ┌──────▼───────────┐
+       │                   │    RESOURCES     │
+       │                   ├──────────────────┤
+       │ uploaded_by (FK)  │ id (PK)          │
+       ├──────────────────►│ demand_id (FK)   │
+       │                   │ personnel_no     │
+       │ evaluated_by (FK) │ name             │
+       ├──────────────────►│ primary_skill    │
+       │                   │ management_level │
+       │                   │ home_location    │
+       │                   │ lock_status      │
+       │                   │ availability     │
+       │                   │ email            │
+       │                   │ evaluation_status│
+       │                   │ evaluation_remarks│
+       │                   │ uploaded_at      │
+       │                   │ evaluated_at     │
+       │                   └──────────────────┘
 ```
 
 ### 5.2 Database Models Summary
 
-| Model               | Table                  | Records | Key Fields                               |
-|----------------------|------------------------|---------|------------------------------------------|
-| User                 | `users`                | Dynamic | email, display_name, password_hash, role |
-| Skill                | `skills`               | 30+     | name, category                           |
-| Demand               | `demands`              | Dynamic | project_name, career_level, priority, status |
-| Application          | `applications`         | Dynamic | demand_id, user_id, status, resume_blob_url |
-| ApplicationHistory   | `application_history`  | Dynamic | application_id, old_status, new_status   |
-| (Association)        | `demand_skills`        | Dynamic | demand_id, skill_id                      |
+| Model               | Table                  | Records | Key Fields                                        |
+|----------------------|------------------------|---------|---------------------------------------------------|
+| User                 | `users`                | Dynamic | email, role, is_approved, otp_code, otp_expires_at |
+| Skill                | `skills`               | 48+     | name, category                                    |
+| Demand               | `demands`              | Dynamic | project_name, rrd, career_level, priority, status  |
+| Resource             | `resources`            | Dynamic | demand_id, name, evaluation_status, evaluated_by   |
+| (Association)        | `demand_skills`        | Dynamic | demand_id, skill_id                               |
 
 ### 5.3 Default Skill Taxonomy
 
@@ -496,25 +522,79 @@ The system seeds 30+ default skills across categories:
 
 | Layer              | Mechanism                                                |
 |--------------------|----------------------------------------------------------|
-| Authentication     | Email + Password (Werkzeug PBKDF2-SHA256 password hashing) |
-| Session Management | Flask-Login with server-side sessions                    |
+| Authentication     | OTP-based (6-digit code sent to @accenture.com email, 10-min expiry) |
+| Domain Restriction | Only @accenture.com email addresses allowed              |
+| User Approval      | New users require admin approval before login            |
+| Session Management | Flask-Login with server-side sessions (1-hour timeout)   |
+| Remember Me        | 24-hour cookie duration with HttpOnly + SameSite=Lax     |
 | CSRF Protection    | Flask-WTF CSRF tokens on all POST forms                  |
 | Role-Based Access  | Custom decorators: `@pmo_required`, `@admin_required`, `@evaluator_required` |
-| Future SSO         | Azure AD / Entra ID (MSAL) – code preserved as comments  |
+| Super Admin        | Hardcoded email with elevated privileges (add/delete users) |
 
-### 7.2 Data Security
+### 7.2 OTP Authentication Flow
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   User       │    │   SkillHive  │    │  Flask-Mail  │
+│   Browser    │    │   Server     │    │  (SMTP/O365) │
+└──────┬───────┘    └──────┬───────┘    └──────┬───────┘
+       │                   │                   │
+       │ POST /auth/login  │                   │
+       │ email=user@acc... │                   │
+       ├──────────────────►│                   │
+       │                   │                   │
+       │  Validate domain  │                   │
+       │  Check is_approved│                   │
+       │  Generate OTP     │                   │
+       │  ├─────────────────────────────────►│
+       │  │ Send OTP email │                   │
+       │                   │                   │
+       │ Redirect /verify  │                   │
+       │◄──────────────────┤                   │
+       │                   │                   │
+       │ POST /verify-otp  │                   │
+       │ otp=123456        │                   │
+       ├──────────────────►│                   │
+       │                   │                   │
+       │  Verify OTP       │                   │
+       │  Clear OTP fields │                   │
+       │  login_user()     │                   │
+       │                   │                   │
+       │ Redirect /dashboard                   │
+       │◄──────────────────┤                   │
+       │                   │                   │
+```
+
+### 7.3 Data Security
 
 | Control                | Implementation                                            |
 |------------------------|------------------------------------------------------------|
 | Transport Encryption   | HTTPS enforced (`httpsOnly: true`)                        |
 | Database SSL           | `sslmode=require` on PostgreSQL connection                 |
 | Storage TLS            | Minimum TLS 1.2 on Azure Blob Storage                     |
-| Password Storage       | Werkzeug `generate_password_hash` (PBKDF2, salted)        |
+| OTP Storage            | Stored in DB, cleared after verification or expiry        |
+| Session Security       | HttpOnly cookies, SameSite=Lax, 1-hour lifetime           |
 | Secret Management      | App Settings (environment variables), not in code          |
-| File Upload Validation | Extension whitelist (`.docx`, `.pptx`), 10MB max size     |
+| File Upload Validation | Extension whitelist (`.xlsx`, `.xls`), 16MB max size      |
 | SQL Injection Prevention| SQLAlchemy ORM parameterized queries                      |
 | XSS Prevention         | Jinja2 auto-escaping + CSRF tokens                        |
-| Upload Filename Safety | `werkzeug.utils.secure_filename` + UUID-based renaming     |
+
+### 7.4 User Approval Workflow
+
+```
+New User Journey:
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│ User visits  │    │ Admin sees   │    │ User can     │
+│ /auth/login  │───►│ pending user │───►│ now login    │
+│ (not found)  │    │ in dashboard │    │ via OTP      │
+│              │    │ → clicks     │    │              │
+│ Sees "not    │    │   Approve    │    │              │
+│ registered"  │    │              │    │              │
+└──────────────┘    └──────────────┘    └──────────────┘
+        │                  │                   │
+        ▼                  ▼                   ▼
+   Contact admin      is_approved=True    OTP sent
+```
 
 ---
 
@@ -650,4 +730,103 @@ Developer Workstation
 
 ---
 
-*End of Document*
+## 11. Cost Optimization Strategy
+
+### 11.1 Overview
+
+SkillHive implements a **Business Hours Access Control** strategy to reduce Azure consumption costs during periods of low or no activity. This is particularly effective for internal enterprise applications with predictable usage patterns.
+
+### 11.2 Business Hours Configuration
+
+| Parameter            | Value                                    |
+|----------------------|------------------------------------------|
+| **Business Hours**   | 8:00 AM – 12:00 AM (Midnight) IST        |
+| **Maintenance Window**| 12:00 AM – 8:00 AM IST (8 hours/day)    |
+| **Timezone**         | India Standard Time (UTC+5:30)           |
+| **Days Affected**    | All days (configurable to weekdays only) |
+
+### 11.3 Implementation Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    User Request                                 │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Flask @app.before_request                          │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  1. Check DEV_MODE / TESTING → Skip if True             │   │
+│  │  2. Check if path starts with /static/ → Skip           │   │
+│  │  3. Get current time in IST (UTC+5:30)                  │   │
+│  │  4. If hour < 8 (midnight to 8 AM):                     │   │
+│  │     └── Return maintenance.html (503)                   │   │
+│  │  5. Else: Continue to route handler                     │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 11.4 Maintenance Page UX
+
+When users access the application outside business hours, they see a friendly, branded maintenance page:
+
+| Element                | Description                                        |
+|------------------------|----------------------------------------------------|
+| **Animated Icon**      | Floating moon/stars icon with CSS animation        |
+| **Headline**           | "Shh... SkillHive is Sleeping!"                   |
+| **Message**            | Explains cost-saving and environmental benefit     |
+| **Business Hours Card**| Clear display of 8 AM – 12 AM IST schedule        |
+| **Call to Action**     | "Come back after 8:00 AM IST"                     |
+| **HTTP Status**        | 503 Service Unavailable (signals temporary state)  |
+
+### 11.5 Code Implementation
+
+```python
+def _register_business_hours_check(app):
+    """Enforce business hours access control."""
+    from datetime import datetime, timedelta, timezone
+    from flask import render_template, request
+
+    IST = timezone(timedelta(hours=5, minutes=30))
+    BUSINESS_START_HOUR = 8   # 8:00 AM
+    BUSINESS_END_HOUR = 24    # Midnight (next day)
+
+    @app.before_request
+    def check_business_hours():
+        # Skip in development/testing
+        if app.config.get('DEV_MODE') or app.config.get('TESTING'):
+            return None
+
+        # Allow static files (CSS/JS/images)
+        if request.path.startswith('/static/'):
+            return None
+
+        now_ist = datetime.now(IST)
+        if now_ist.hour < BUSINESS_START_HOUR:
+            return render_template('errors/maintenance.html'), 503
+
+        return None
+```
+
+### 11.6 Cost Savings Estimate
+
+| Metric                           | Value                         |
+|----------------------------------|-------------------------------|
+| Daily maintenance window         | 8 hours (33% of day)          |
+| Potential compute savings        | ~10-15% monthly (B1 plan idle)|
+| Database connection savings      | Reduced connection pool usage  |
+| User impact                      | Minimal (off-hours users rare)|
+
+### 11.7 Future Enhancements
+
+| Enhancement                      | Description                                       |
+|----------------------------------|---------------------------------------------------|
+| **Azure Automation Runbooks**    | Auto-stop/start App Service Plan during maintenance |
+| **PostgreSQL Auto-Pause**        | Use Flexible Server serverless tier (when available)|
+| **Weekend Scheduling**           | Optional extended maintenance on weekends         |
+| **Admin Override**               | Allow admins to bypass maintenance window         |
+| **Dynamic Hours via Config**     | Store business hours in database or App Settings  |
+
+---
+
+*End of Document (v1.3)*

@@ -73,6 +73,9 @@ def create_app(config_name=None):
     # ---------- Register Error Handlers ----------
     _register_error_handlers(app)
 
+    # ---------- Register Business Hours Check ----------
+    _register_business_hours_check(app)
+
     # ---------- Register Template Context Processors ----------
     _register_context_processors(app)
 
@@ -152,6 +155,50 @@ def _register_error_handlers(app):
     @app.errorhandler(403)
     def forbidden(e):
         return render_template('errors/404.html', message="Access denied. You don't have permission to view this page."), 403
+
+    @app.errorhandler(503)
+    def service_unavailable(e):
+        return render_template('errors/maintenance.html'), 503
+
+
+def _register_business_hours_check(app):
+    """
+    Register before_request hook to enforce business hours access.
+    App is only available from 8:00 AM to 12:00 AM IST (midnight).
+    Outside these hours, show maintenance page to save Azure costs.
+    """
+    from flask import render_template, request
+    from datetime import datetime, timedelta, timezone
+
+    # IST is UTC+5:30
+    IST = timezone(timedelta(hours=5, minutes=30))
+
+    # Business hours config (can be moved to app.config later)
+    BUSINESS_START_HOUR = 8   # 8:00 AM IST
+    BUSINESS_END_HOUR = 24    # 12:00 AM (midnight) IST
+
+    @app.before_request
+    def check_business_hours():
+        # Skip check in dev mode for local development/testing
+        if app.config.get('DEV_MODE') or app.config.get('TESTING'):
+            return None
+
+        # Skip for static files
+        if request.path.startswith('/static/'):
+            return None
+
+        # Get current time in IST
+        now_ist = datetime.now(IST)
+        current_hour = now_ist.hour
+
+        # Check if outside business hours (midnight to 8 AM = hours 0-7)
+        if current_hour < BUSINESS_START_HOUR:
+            app.logger.info(
+                f"Access blocked outside business hours: {now_ist.strftime('%Y-%m-%d %H:%M:%S')} IST"
+            )
+            return render_template('errors/maintenance.html'), 503
+
+        return None
 
 
 def _register_template_filters(app):
