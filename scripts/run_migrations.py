@@ -78,6 +78,16 @@ ON CONFLICT (email) DO UPDATE SET
 """
 
 
+MIGRATION_005 = """
+-- Migration 005: Add Project Fields to Demands Table
+-- Adds du_name, client_name, and manager_name columns
+
+ALTER TABLE demands ADD COLUMN IF NOT EXISTS du_name VARCHAR(255);
+ALTER TABLE demands ADD COLUMN IF NOT EXISTS client_name VARCHAR(255);
+ALTER TABLE demands ADD COLUMN IF NOT EXISTS manager_name VARCHAR(255);
+"""
+
+
 def run_migration(conn, name, sql):
     """Execute a migration SQL block."""
     print(f"\n{'='*50}")
@@ -175,6 +185,20 @@ def main():
         print("\n  >> is_approved column already exists, skipping migration 004")
     else:
         run_migration(conn, "Migration 004 (OTP auth columns)", MIGRATION_004)
+
+    # Check if du_name column already exists on demands (migration 005)
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'demands' AND column_name = 'du_name';
+    """)
+    has_du_name = cur.fetchone() is not None
+    cur.close()
+
+    if has_du_name:
+        print("\n  >> du_name column already exists, skipping migration 005")
+    else:
+        run_migration(conn, "Migration 005 (project fields)", MIGRATION_005)
 
     # Show final state
     print("\n=== AFTER MIGRATIONS ===")

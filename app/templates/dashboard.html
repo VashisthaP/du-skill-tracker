@@ -117,8 +117,8 @@
                         </a>
 
                         {% if current_user.is_pmo %}
-                        <a href="{{ url_for('demands.list_demands') }}" class="btn btn-outline-purple btn-sm text-start">
-                            <i class="bi bi-cloud-arrow-up me-2"></i>Upload Resources (via RRD)
+                        <a href="{{ url_for('resources.select_project') }}" class="btn btn-outline-purple btn-sm text-start">
+                            <i class="bi bi-cloud-arrow-up me-2"></i>Upload Resources
                         </a>
                         <a href="{{ url_for('demands.export_excel') }}" class="btn btn-outline-success btn-sm text-start">
                             <i class="bi bi-file-earmark-excel me-2"></i>Export RRDs

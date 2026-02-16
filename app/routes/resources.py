@@ -18,7 +18,7 @@ from openpyxl.styles import Font, PatternFill
 
 from app import db
 from app.models import Demand, Resource
-from app.forms import ResourceUploadForm, ResourceEvaluationForm
+from app.forms import ResourceUploadForm, ResourceEvaluationForm, ProjectForm
 from app.utils.decorators import pmo_required
 
 resources_bp = Blueprint('resources', __name__, template_folder='templates')
@@ -72,6 +72,88 @@ def _match_header(header_text):
         if key in normalized or normalized in key:
             return field
     return None
+
+
+# =====================================================
+# SELECT PROJECT (PMO only) - Landing page for Upload Resources
+# =====================================================
+@resources_bp.route('/')
+@login_required
+@pmo_required
+def select_project():
+    """
+    Display list of projects for PMO to select before uploading resources.
+    Shows all projects with option to create a new one.
+    """
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
+    # Get all projects (demands), newest first
+    query = Demand.query.order_by(Demand.created_at.desc())
+
+    # Search filter
+    search = request.args.get('search', '').strip()
+    if search:
+        search_pattern = f'%{search}%'
+        query = query.filter(
+            db.or_(
+                Demand.project_name.ilike(search_pattern),
+                Demand.du_name.ilike(search_pattern),
+                Demand.client_name.ilike(search_pattern),
+                Demand.manager_name.ilike(search_pattern),
+            )
+        )
+
+    projects = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template('resources/select_project.html',
+                           projects=projects,
+                           search=search)
+
+
+# =====================================================
+# CREATE PROJECT (PMO only)
+# =====================================================
+@resources_bp.route('/create-project', methods=['GET', 'POST'])
+@login_required
+@pmo_required
+def create_project():
+    """
+    Create a new project with simplified fields.
+    After creation, redirect to upload resources for this project.
+    """
+    form = ProjectForm()
+
+    if form.validate_on_submit():
+        try:
+            # Create demand/project with simplified fields
+            project = Demand(
+                project_name=form.project_name.data,
+                du_name=form.du_name.data,
+                client_name=form.client_name.data,
+                manager_name=form.manager_name.data,
+                description=form.description.data,
+                # Set defaults for required fields
+                rrd=form.project_name.data,  # Use project name as RRD
+                career_level='11',  # Default to SSE
+                num_positions=1,
+                priority='medium',
+                status='open',
+                created_by=current_user.id,
+            )
+
+            db.session.add(project)
+            db.session.commit()
+
+            flash(f'Project "{project.project_name}" created successfully! Now upload resources.', 'success')
+            return redirect(url_for('resources.upload', demand_id=project.id))
+
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error creating project: {e}")
+            flash('An error occurred while creating the project. Please try again.', 'danger')
+
+    return render_template('resources/create_project.html', form=form)
 
 
 # =====================================================

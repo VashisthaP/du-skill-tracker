@@ -16,6 +16,39 @@ from wtforms.validators import (
 )
 
 
+class ProjectForm(FlaskForm):
+    """
+    Simplified form for creating a Project (under which resources are uploaded).
+    Used by PMO team members to create projects before uploading RRDs.
+    """
+    # ---------- Required Project Information ----------
+    project_name = StringField(
+        'Project Name',
+        validators=[DataRequired(message='Project name is required'),
+                    Length(max=255)]
+    )
+    du_name = StringField(
+        'DU Name',
+        validators=[DataRequired(message='DU name is required'),
+                    Length(max=255)]
+    )
+    client_name = StringField(
+        'Client Name',
+        validators=[DataRequired(message='Client name is required'),
+                    Length(max=255)]
+    )
+    manager_name = StringField(
+        'Manager Name',
+        validators=[DataRequired(message='Manager name is required'),
+                    Length(max=255)]
+    )
+    # ---------- Optional Fields ----------
+    description = TextAreaField(
+        'Role / Job Description (Optional)',
+        validators=[Optional(), Length(max=5000)]
+    )
+
+
 class DemandForm(FlaskForm):
     """
     Form for creating and editing project demands.
@@ -35,6 +68,18 @@ class DemandForm(FlaskForm):
         'RRD',
         validators=[DataRequired(message='RRD is required'),
                     Length(max=255)]
+    )
+    du_name = StringField(
+        'DU Name',
+        validators=[Optional(), Length(max=255)]
+    )
+    client_name = StringField(
+        'Client Name',
+        validators=[Optional(), Length(max=255)]
+    )
+    manager_name = StringField(
+        'Manager Name',
+        validators=[Optional(), Length(max=255)]
     )
 
     # ---------- Requirement Details ----------

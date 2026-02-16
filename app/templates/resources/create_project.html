@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Create New Project{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('resources.select_project') }}">Upload Resources</a></li>
+            <li class="breadcrumb-item active">Create Project</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4">
+                    <h4 class="card-title mb-1">
+                        <i class="bi bi-folder-plus text-purple me-2"></i>Create New Project
+                    </h4>
+                    <p class="text-muted mb-0">
+                        Enter the project details below. After creating the project, you'll be able to upload resources.
+                    </p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <!-- Project Name -->
+                        <div class="mb-4">
+                            <label for="project_name" class="form-label fw-semibold">
+                                <i class="bi bi-briefcase me-1"></i>Project Name
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.project_name(class="form-control" + (" is-invalid" if form.project_name.errors else ""),
+                                                 placeholder="e.g., Cloud Migration - Phase 2") }}
+                            {% if form.project_name.errors %}
+                            <div class="invalid-feedback">{{ form.project_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- DU Name -->
+                        <div class="mb-4">
+                            <label for="du_name" class="form-label fw-semibold">
+                                <i class="bi bi-building me-1"></i>DU Name
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.du_name(class="form-control" + (" is-invalid" if form.du_name.errors else ""),
+                                            placeholder="e.g., Technology Consulting") }}
+                            {% if form.du_name.errors %}
+                            <div class="invalid-feedback">{{ form.du_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Client Name -->
+                        <div class="mb-4">
+                            <label for="client_name" class="form-label fw-semibold">
+                                <i class="bi bi-person-badge me-1"></i>Client Name
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.client_name(class="form-control" + (" is-invalid" if form.client_name.errors else ""),
+                                                placeholder="e.g., ABC Corporation") }}
+                            {% if form.client_name.errors %}
+                            <div class="invalid-feedback">{{ form.client_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Manager Name -->
+                        <div class="mb-4">
+                            <label for="manager_name" class="form-label fw-semibold">
+                                <i class="bi bi-person me-1"></i>Manager Name
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.manager_name(class="form-control" + (" is-invalid" if form.manager_name.errors else ""),
+                                                 placeholder="e.g., John Smith") }}
+                            {% if form.manager_name.errors %}
+                            <div class="invalid-feedback">{{ form.manager_name.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Role / Job Description (Optional) -->
+                        <div class="mb-4">
+                            <label for="description" class="form-label fw-semibold">
+                                <i class="bi bi-file-text me-1"></i>Role / Job Description
+                                <span class="text-muted fw-normal">(Optional)</span>
+                            </label>
+                            {{ form.description(class="form-control", rows=4,
+                                                placeholder="Describe the role requirements, technical skills needed, etc.") }}
+                            {% if form.description.errors %}
+                            <div class="text-danger small">{{ form.description.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <a href="{{ url_for('resources.select_project') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Back
+                            </a>
+                            <button type="submit" class="btn btn-purple btn-lg">
+                                <i class="bi bi-check-circle me-1"></i>Create Project & Upload Resources
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
