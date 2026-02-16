@@ -5,14 +5,29 @@
 <div class="container-fluid px-4 py-4">
     <h2 class="page-title mb-4"><i class="bi bi-speedometer2 text-purple me-2"></i>Admin Dashboard</h2>
 
+    <!-- Pending Approvals Alert -->
+    {% if pending_users %}
+    <div class="alert alert-warning border-0 shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>{{ pending_users|length }} user(s) pending approval</strong>
+            </div>
+            <a href="{{ url_for('admin.users', approved='no') }}" class="btn btn-warning btn-sm">
+                Review Now <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Stats Row -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-2"><div class="stat-card stat-card-purple"><div class="stat-number">{{ user_stats.total }}</div><div class="stat-label">Total Users</div></div></div>
-        <div class="col-6 col-md-2"><div class="stat-card stat-card-blue"><div class="stat-number">{{ demand_stats.total }}</div><div class="stat-label">Total Demands</div></div></div>
-        <div class="col-6 col-md-2"><div class="stat-card stat-card-green"><div class="stat-number">{{ demand_stats.open }}</div><div class="stat-label">Open Demands</div></div></div>
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-blue"><div class="stat-number">{{ demand_stats.total }}</div><div class="stat-label">Total RRDs</div></div></div>
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-green"><div class="stat-number">{{ demand_stats.open }}</div><div class="stat-label">Open RRDs</div></div></div>
         <div class="col-6 col-md-2"><div class="stat-card stat-card-amber"><div class="stat-number">{{ demand_stats.critical }}</div><div class="stat-label">Critical</div></div></div>
-        <div class="col-6 col-md-2"><div class="stat-card stat-card-blue"><div class="stat-number">{{ app_stats.total }}</div><div class="stat-label">Applications</div></div></div>
-        <div class="col-6 col-md-2"><div class="stat-card stat-card-green"><div class="stat-number">{{ app_stats.selected }}</div><div class="stat-label">Selected</div></div></div>
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-blue"><div class="stat-number">{{ resource_stats.total }}</div><div class="stat-label">Resources</div></div></div>
+        <div class="col-6 col-md-2"><div class="stat-card stat-card-green"><div class="stat-number">{{ resource_stats.accepted }}</div><div class="stat-label">Accepted</div></div></div>
     </div>
 
     <div class="row g-4">
@@ -52,43 +67,35 @@
             </div>
         </div>
 
-        <!-- Application Pipeline -->
+        <!-- Resource Evaluation Pipeline -->
         <div class="col-md-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white border-0 pt-3">
-                    <h5 class="card-title mb-0"><i class="bi bi-funnel text-purple me-2"></i>Application Pipeline</h5>
+                    <h5 class="card-title mb-0"><i class="bi bi-funnel text-purple me-2"></i>Resource Pipeline</h5>
                 </div>
                 <div class="card-body">
                     <div class="pipeline-stat mb-3">
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Applied</span><strong>{{ app_stats.applied }}</strong>
+                            <span>Pending</span><strong>{{ resource_stats.pending }}</strong>
                         </div>
                         <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-info" data-width="{{ (app_stats.applied / (app_stats.total or 1) * 100) | round }}"></div>
+                            <div class="progress-bar bg-secondary" data-width="{{ (resource_stats.pending / (resource_stats.total or 1) * 100) | round }}"></div>
                         </div>
                     </div>
                     <div class="pipeline-stat mb-3">
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Under Evaluation</span><strong>{{ app_stats.under_evaluation }}</strong>
+                            <span>Accepted</span><strong>{{ resource_stats.accepted }}</strong>
                         </div>
                         <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-warning" data-width="{{ (app_stats.under_evaluation / (app_stats.total or 1) * 100) | round }}"></div>
-                        </div>
-                    </div>
-                    <div class="pipeline-stat mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Selected</span><strong>{{ app_stats.selected }}</strong>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" data-width="{{ (app_stats.selected / (app_stats.total or 1) * 100) | round }}"></div>
+                            <div class="progress-bar bg-success" data-width="{{ (resource_stats.accepted / (resource_stats.total or 1) * 100) | round }}"></div>
                         </div>
                     </div>
                     <div class="pipeline-stat">
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Rejected</span><strong>{{ app_stats.rejected }}</strong>
+                            <span>Rejected</span><strong>{{ resource_stats.rejected }}</strong>
                         </div>
                         <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-danger" data-width="{{ (app_stats.rejected / (app_stats.total or 1) * 100) | round }}"></div>
+                            <div class="progress-bar bg-danger" data-width="{{ (resource_stats.rejected / (resource_stats.total or 1) * 100) | round }}"></div>
                         </div>
                     </div>
                 </div>
@@ -106,14 +113,28 @@
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
-                        <tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr>
+                        <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr>
                     </thead>
                     <tbody>
                         {% for user in recent_users %}
                         <tr>
-                            <td class="fw-semibold">{{ user.display_name }}</td>
+                            <td class="fw-semibold">
+                                {{ user.display_name }}
+                                {% if user.email.lower() == 'pratyush.vashistha@accenture.com' %}
+                                <span class="badge bg-danger ms-1">SA</span>
+                                {% endif %}
+                            </td>
                             <td>{{ user.email }}</td>
                             <td><span class="badge bg-{{ 'danger' if user.role == 'admin' else 'primary' if user.role == 'pmo' else 'info' if user.role == 'evaluator' else 'secondary' }}">{{ user.display_role }}</span></td>
+                            <td>
+                                {% if not user.is_active %}
+                                <span class="badge bg-dark">Deactivated</span>
+                                {% elif not user.is_approved %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% else %}
+                                <span class="badge bg-success">Active</span>
+                                {% endif %}
+                            </td>
                             <td><small class="text-muted">{{ user.created_at.strftime('%d %b %Y') if user.created_at }}</small></td>
                         </tr>
                         {% endfor %}

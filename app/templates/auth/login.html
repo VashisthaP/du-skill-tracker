@@ -29,32 +29,29 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">
-                                <i class="bi bi-envelope me-1"></i>Email
+                                <i class="bi bi-envelope me-1"></i>Accenture Email
                             </label>
                             <input type="email" name="email" class="form-control form-control-lg"
-                                   placeholder="you@company.com" required autofocus>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-lock me-1"></i>Password
-                            </label>
-                            <input type="password" name="password" class="form-control form-control-lg"
-                                   placeholder="Enter your password" required>
+                                   placeholder="yourname@accenture.com" required autofocus
+                                   pattern="[a-zA-Z0-9._%+-]+@accenture\.com$"
+                                   title="Only @accenture.com email addresses are allowed">
+                            <div class="form-text">
+                                <i class="bi bi-shield-lock me-1"></i>Only @accenture.com emails approved by admin are allowed.
+                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-accent w-100 btn-lg">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                            <i class="bi bi-send me-2"></i>Send OTP
                         </button>
                     </form>
 
                     <div class="text-center mt-4">
                         <small class="text-muted">
-                            Contact your administrator if you need an account or forgot your password.
+                            <i class="bi bi-info-circle me-1"></i>
+                            A 6-digit OTP will be sent to your email. Valid for 10 minutes.<br>
+                            Contact <strong>pratyush.vashistha@accenture.com</strong> for account approval.
                         </small>
                     </div>
-
-
                 </div>
             </div>
         </div>

@@ -1,20 +1,18 @@
 """
 SkillHive - Authentication Module
 ===================================
-Currently uses database-based email + password authentication.
-Azure AD / Entra ID SSO logic is preserved as comments for future enablement.
+OTP-based authentication restricted to @accenture.com email addresses.
+Only users approved by the admin (pratyush.vashistha@accenture.com) can log in.
 
-To enable SSO:
-  1. Uncomment AZURE_AD_* settings in config.py
-  2. Uncomment msal in requirements.txt and pip install msal
-  3. Uncomment the SSO routes and helpers below
-  4. Add Entra ID parameters back to azuredeploy.json
-  5. Create an App Registration in Azure AD with redirect URI:
-     https://<app-name>.azurewebsites.net/auth/callback
+Flow:
+  1. User enters @accenture.com email on login page
+  2. System checks if user exists and is approved
+  3. 6-digit OTP sent to the email (valid for 10 minutes)
+  4. User enters OTP to complete login
 """
 
-# import uuid  # TODO: Uncomment for SSO
-# import msal  # TODO: Uncomment for SSO
+import random
+from datetime import datetime, timezone
 from flask import (
     Blueprint, redirect, url_for, session, request,
     flash, current_app, render_template
@@ -26,37 +24,37 @@ from app.models import User
 # Create the auth blueprint
 auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
+# Super admin email - auto-approved, always admin
+SUPER_ADMIN_EMAIL = 'pratyush.vashistha@accenture.com'
+
 
 # =====================================================
-# AZURE AD SSO HELPER FUNCTIONS (Commented for future use)
+# HELPER: Send OTP Email
 # =====================================================
-# TODO: Uncomment the following 3 functions to enable Azure AD SSO
-#
-# def _build_msal_app(cache=None):
-#     """Build a ConfidentialClientApplication for Azure AD authentication."""
-#     return msal.ConfidentialClientApplication(
-#         current_app.config['AZURE_AD_CLIENT_ID'],
-#         authority=current_app.config['AZURE_AD_AUTHORITY'],
-#         client_credential=current_app.config['AZURE_AD_CLIENT_SECRET'],
-#         token_cache=cache
-#     )
-#
-# def _build_auth_url(state=None):
-#     """Build the Azure AD authorization URL for login redirect."""
-#     return _build_msal_app().get_authorization_request_url(
-#         scopes=current_app.config['AZURE_AD_SCOPE'],
-#         state=state or str(uuid.uuid4()),
-#         redirect_uri=current_app.config['AZURE_AD_REDIRECT_URI']
-#     )
-#
-# def _get_token_from_code(code):
-#     """Exchange the authorization code for access/refresh tokens."""
-#     app_instance = _build_msal_app()
-#     return app_instance.acquire_token_by_authorization_code(
-#         code,
-#         scopes=current_app.config['AZURE_AD_SCOPE'],
-#         redirect_uri=current_app.config['AZURE_AD_REDIRECT_URI']
-#     )
+def _send_otp_email(user, otp_code):
+    """
+    Send OTP email using Flask-Mail.
+    Falls back to logging the OTP if email sending fails (dev mode).
+    """
+    try:
+        from flask_mail import Message
+        from app import mail
+
+        msg = Message(
+            subject=f'SkillHive Login OTP: {otp_code}',
+            recipients=[user.email],
+            html=render_template('auth/otp_email.html',
+                                 user=user, otp_code=otp_code),
+        )
+        mail.send(msg)
+        current_app.logger.info(f"OTP email sent to {user.email}")
+        return True
+    except Exception as e:
+        current_app.logger.warning(
+            f"Failed to send OTP email to {user.email}: {e}. "
+            f"OTP for dev/testing: {otp_code}"
+        )
+        return False
 
 
 # =====================================================
@@ -66,123 +64,129 @@ auth_bp = Blueprint('auth', __name__, template_folder='templates')
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """
-    Login page with email + password authentication.
-    GET: Render the login form
-    POST: Validate credentials against the database
+    Step 1: User enters @accenture.com email.
+    Validates domain, checks approval, generates and sends OTP.
     """
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
 
-    # ----- SSO MODE (uncomment to enable, remove DB login block below) -----
-    # session['auth_state'] = str(uuid.uuid4())
-    # auth_url = _build_auth_url(state=session['auth_state'])
-    # return redirect(auth_url)
-    # -----------------------------------------------------------------------
-
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
 
-        if not email or not password:
-            flash('Please enter both email and password.', 'warning')
+        if not email:
+            flash('Please enter your email address.', 'warning')
+            return render_template('auth/login.html')
+
+        # Validate @accenture.com domain
+        if not email.endswith('@accenture.com'):
+            flash('Only @accenture.com email addresses are allowed.', 'danger')
             return render_template('auth/login.html')
 
         user = User.query.filter_by(email=email).first()
 
-        if user and user.check_password(password):
-            if not user.is_active:
-                flash('Your account has been deactivated. Contact your administrator.', 'danger')
-                return render_template('auth/login.html')
+        if not user:
+            flash('Your account is not registered. Please contact the administrator '
+                  'to get approved.', 'danger')
+            return render_template('auth/login.html')
 
+        if not user.is_active:
+            flash('Your account has been deactivated. Contact the administrator.', 'danger')
+            return render_template('auth/login.html')
+
+        if not user.is_approved:
+            flash('Your account is pending admin approval. Please contact '
+                  'pratyush.vashistha@accenture.com for access.', 'warning')
+            return render_template('auth/login.html')
+
+        # Generate OTP and send email
+        otp_code = user.generate_otp()
+        db.session.commit()
+
+        email_sent = _send_otp_email(user, otp_code)
+
+        # Store email in session for OTP verification step
+        session['otp_email'] = email
+
+        if email_sent:
+            flash(f'A 6-digit OTP has been sent to {email}. It expires in 10 minutes.', 'info')
+        else:
+            flash(f'OTP generated but email delivery failed. Please contact your administrator.', 'warning')
+            # In dev mode, the OTP is logged to console
+
+        return redirect(url_for('auth.verify_otp'))
+
+    return render_template('auth/login.html')
+
+
+@auth_bp.route('/verify-otp', methods=['GET', 'POST'])
+def verify_otp():
+    """
+    Step 2: User enters the 6-digit OTP received via email.
+    Validates OTP, logs user in on success.
+    """
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+
+    email = session.get('otp_email')
+    if not email:
+        flash('Please enter your email first.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'POST':
+        otp_code = request.form.get('otp', '').strip()
+
+        if not otp_code or len(otp_code) != 6:
+            flash('Please enter the 6-digit OTP.', 'warning')
+            return render_template('auth/verify_otp.html', email=email)
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user:
+            flash('User not found. Please try logging in again.', 'danger')
+            session.pop('otp_email', None)
+            return redirect(url_for('auth.login'))
+
+        if user.verify_otp(otp_code):
+            db.session.commit()
             login_user(user, remember=True)
-            current_app.logger.info(f"User logged in: {email}")
+            session.pop('otp_email', None)
+
+            current_app.logger.info(f"User logged in via OTP: {email}")
             flash(f'Welcome, {user.display_name}!', 'success')
 
             next_page = request.args.get('next') or url_for('main.dashboard')
             return redirect(next_page)
         else:
-            flash('Invalid email or password.', 'danger')
-            return render_template('auth/login.html')
+            flash('Invalid or expired OTP. Please try again.', 'danger')
+            return render_template('auth/verify_otp.html', email=email)
 
-    return render_template('auth/login.html')
+    return render_template('auth/verify_otp.html', email=email)
 
 
-# =====================================================
-# AZURE AD SSO CALLBACK (Commented for future use)
-# =====================================================
-# TODO: Uncomment to enable Azure AD SSO callback
-#
-# @auth_bp.route('/callback')
-# def callback():
-#     """Azure AD OAuth2 callback endpoint."""
-#     if request.args.get('state') != session.get('auth_state'):
-#         flash('Authentication failed: Invalid state parameter.', 'danger')
-#         return redirect(url_for('main.index'))
-#
-#     if 'error' in request.args:
-#         error_desc = request.args.get('error_description', 'Unknown error')
-#         current_app.logger.error(f"Azure AD auth error: {error_desc}")
-#         flash(f'Authentication failed: {error_desc}', 'danger')
-#         return redirect(url_for('main.index'))
-#
-#     code = request.args.get('code')
-#     if not code:
-#         flash('Authentication failed: No authorization code received.', 'danger')
-#         return redirect(url_for('main.index'))
-#
-#     try:
-#         token_result = _get_token_from_code(code)
-#     except Exception as e:
-#         current_app.logger.error(f"Token acquisition failed: {e}")
-#         flash('Authentication failed. Please try again.', 'danger')
-#         return redirect(url_for('main.index'))
-#
-#     if 'error' in token_result:
-#         current_app.logger.error(f"Token error: {token_result.get('error_description')}")
-#         flash('Authentication failed. Please try again.', 'danger')
-#         return redirect(url_for('main.index'))
-#
-#     user_info = token_result.get('id_token_claims', {})
-#     azure_ad_id = user_info.get('oid', '')
-#     email = user_info.get('preferred_username', '') or user_info.get('email', '')
-#     display_name = user_info.get('name', email.split('@')[0])
-#
-#     if not email:
-#         flash('Could not retrieve your email from Azure AD.', 'danger')
-#         return redirect(url_for('main.index'))
-#
-#     user = _create_or_update_sso_user(azure_ad_id, email, display_name)
-#     login_user(user, remember=True)
-#     session.pop('auth_state', None)
-#     current_app.logger.info(f"User logged in via SSO: {email}")
-#     flash(f'Welcome, {display_name}!', 'success')
-#     next_page = session.pop('next_url', None) or url_for('main.dashboard')
-#     return redirect(next_page)
-#
-#
-# def _create_or_update_sso_user(azure_ad_id, email, display_name):
-#     """Create a new user or update an existing one after Azure AD login."""
-#     user = User.query.filter_by(email=email).first()
-#     if user:
-#         user.azure_ad_id = azure_ad_id
-#         user.display_name = display_name
-#     else:
-#         is_first_user = User.query.count() == 0
-#         user = User(
-#             azure_ad_id=azure_ad_id,
-#             email=email,
-#             display_name=display_name,
-#             enterprise_id=email.split('@')[0] if '@' in email else email,
-#             role='admin' if is_first_user else 'resource'
-#         )
-#         db.session.add(user)
-#     try:
-#         db.session.commit()
-#     except Exception as e:
-#         db.session.rollback()
-#         current_app.logger.error(f"Error creating/updating user: {e}")
-#         user = User.query.filter_by(email=email).first()
-#     return user
+@auth_bp.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    """Resend OTP to the user's email."""
+    email = session.get('otp_email')
+    if not email:
+        flash('Please enter your email first.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.is_approved or not user.is_active:
+        flash('Unable to resend OTP. Please try logging in again.', 'danger')
+        session.pop('otp_email', None)
+        return redirect(url_for('auth.login'))
+
+    otp_code = user.generate_otp()
+    db.session.commit()
+
+    email_sent = _send_otp_email(user, otp_code)
+    if email_sent:
+        flash(f'A new OTP has been sent to {email}.', 'info')
+    else:
+        flash('OTP generated but email delivery failed. Check with your administrator.', 'warning')
+
+    return redirect(url_for('auth.verify_otp'))
 
 
 @auth_bp.route('/logout')
@@ -190,19 +194,10 @@ def login():
 def logout():
     """
     Log the user out of the application.
-    Clears the Flask session and redirects to the landing page.
+    Clears the Flask session and redirects to the login page.
     """
     user_name = current_user.display_name
-    session.clear()        # clear custom session data first
-    logout_user()          # then let Flask-Login clear its own session keys & remember cookie
+    session.clear()
+    logout_user()
     flash(f'Goodbye, {user_name}! You have been logged out.', 'info')
     return redirect(url_for('auth.login'))
-
-    # ----- SSO LOGOUT (uncomment to enable Azure AD sign-out) -----
-    # tenant_id = current_app.config.get('AZURE_AD_TENANT_ID')
-    # post_logout_redirect = url_for('main.index', _external=True)
-    # azure_logout_url = (
-    #     f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/logout"
-    #     f"?post_logout_redirect_uri={post_logout_redirect}"
-    # )
-    # return redirect(azure_logout_url)

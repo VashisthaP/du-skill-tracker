@@ -1,6 +1,7 @@
 """
 SkillHive – Test Suite
 Basic tests for app creation, models, and routes.
+Updated for OTP-based authentication and user approval workflow.
 """
 import os
 import pytest
@@ -152,11 +153,145 @@ class TestRoutes:
         resp = client.get('/auth/login')
         assert resp.status_code == 200
         assert b'Sign In' in resp.data
+        assert b'accenture.com' in resp.data
 
-    def test_login_invalid_creds(self, client):
-        resp = client.post('/auth/login', data={'email': 'bad@test.com', 'password': 'wrong'})
+    def test_login_non_accenture_email(self, client):
+        resp = client.post('/auth/login', data={'email': 'bad@gmail.com'})
         assert resp.status_code == 200
-        assert b'Invalid email or password' in resp.data
+
+    def test_login_unregistered_accenture_email(self, client):
+        resp = client.post('/auth/login', data={'email': 'nobody@accenture.com'}, follow_redirects=True)
+        assert resp.status_code == 200
+
+    def test_login_unapproved_user(self, app, client):
+        with app.app_context():
+            user = User(
+                email='unapproved@accenture.com',
+                display_name='Unapproved',
+                role='resource',
+                is_approved=False,
+                is_active=True,
+            )
+            db.session.add(user)
+            db.session.commit()
+        resp = client.post('/auth/login', data={'email': 'unapproved@accenture.com'}, follow_redirects=True)
+        assert resp.status_code == 200
+
+    def test_login_otp_flow(self, app, client):
+        with app.app_context():
+            user = User(
+                email='valid@accenture.com',
+                display_name='Valid User',
+                role='resource',
+                is_approved=True,
+                is_active=True,
+            )
+            db.session.add(user)
+            db.session.commit()
+        # Step 1: Request OTP (don't follow redirects — need the session)
+        resp = client.post('/auth/login', data={'email': 'valid@accenture.com'})
+        assert resp.status_code == 302  # redirects to verify-otp
+        # Step 2: Get OTP from the user object
+        with app.app_context():
+            user = User.query.filter_by(email='valid@accenture.com').first()
+            otp_code = user.otp_code
+            assert otp_code is not None
+            assert len(otp_code) == 6
+        # Step 3: Verify OTP (session already has otp_email from step 1)
+        resp = client.post('/auth/verify-otp', data={
+            'otp': otp_code
+        }, follow_redirects=True)
+        assert resp.status_code == 200
+
+
+class TestResourceModel:
+    """Tests for the Resource model (bulk upload supply)."""
+
+    def test_create_resource(self, app):
+        with app.app_context():
+            pmo = User(email='pmo@test.com', display_name='PMO', role='pmo')
+            db.session.add(pmo)
+            db.session.flush()
+
+
+class TestOTPAuth:
+    """Tests for OTP generation, verification, and user approval."""
+
+    def test_generate_otp(self, app):
+        with app.app_context():
+            user = User(email='otp@accenture.com', display_name='OTP User', role='resource')
+            db.session.add(user)
+            db.session.commit()
+            otp = user.generate_otp()
+            assert len(otp) == 6
+            assert otp.isdigit()
+            assert user.otp_code == otp
+            assert user.otp_expires_at is not None
+
+    def test_verify_otp_valid(self, app):
+        with app.app_context():
+            user = User(email='verify@accenture.com', display_name='Verify', role='resource')
+            db.session.add(user)
+            db.session.commit()
+            otp = user.generate_otp()
+            db.session.commit()
+            assert user.verify_otp(otp) is True
+            # OTP should be cleared after verification
+            assert user.otp_code is None
+
+    def test_verify_otp_invalid(self, app):
+        with app.app_context():
+            user = User(email='bad_otp@accenture.com', display_name='Bad OTP', role='resource')
+            db.session.add(user)
+            db.session.commit()
+            user.generate_otp()
+            db.session.commit()
+            assert user.verify_otp('000000') is False
+
+    def test_verify_otp_expired(self, app):
+        from datetime import datetime, timedelta
+        with app.app_context():
+            user = User(email='expired@accenture.com', display_name='Expired', role='resource')
+            db.session.add(user)
+            db.session.commit()
+            otp = user.generate_otp()
+            # Manually expire the OTP
+            user.otp_expires_at = datetime.utcnow() - timedelta(minutes=1)
+            db.session.commit()
+            assert user.verify_otp(otp) is False
+
+    def test_is_super_admin(self, app):
+        with app.app_context():
+            # Super admin is auto-created by _ensure_super_admin()
+            super_admin = User.query.filter_by(
+                email='pratyush.vashistha@accenture.com'
+            ).first()
+            assert super_admin is not None
+            assert super_admin.is_super_admin is True
+            regular = User(email='regular@accenture.com', display_name='Regular', role='admin')
+            db.session.add(regular)
+            db.session.commit()
+            assert regular.is_super_admin is False
+
+
+class TestUserApproval:
+    """Tests for user approval workflow."""
+
+    def test_new_user_not_approved(self, app):
+        with app.app_context():
+            user = User(email='new@accenture.com', display_name='New', role='resource')
+            db.session.add(user)
+            db.session.commit()
+            assert user.is_approved is False
+
+    def test_approve_user(self, app):
+        with app.app_context():
+            user = User(email='approve@accenture.com', display_name='ToApprove', role='resource')
+            db.session.add(user)
+            db.session.commit()
+            user.is_approved = True
+            db.session.commit()
+            assert user.is_approved is True
 
 
 class TestResourceModel:

@@ -51,6 +51,33 @@ CREATE INDEX IF NOT EXISTS ix_resources_evaluation_status
 """
 
 
+MIGRATION_004 = """
+-- Add OTP authentication and user approval columns
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
+
+-- Approve all existing active users
+UPDATE users SET is_approved = TRUE WHERE is_active = TRUE;
+
+-- Ensure super admin
+INSERT INTO users (email, display_name, role, is_active, is_approved, created_at)
+VALUES (
+    'pratyush.vashistha@accenture.com',
+    'Pratyush Vashistha',
+    'admin',
+    TRUE,
+    TRUE,
+    NOW() AT TIME ZONE 'utc'
+)
+ON CONFLICT (email) DO UPDATE SET
+    role = 'admin',
+    is_active = TRUE,
+    is_approved = TRUE;
+"""
+
+
 def run_migration(conn, name, sql):
     """Execute a migration SQL block."""
     print(f"\n{'='*50}")
@@ -134,6 +161,20 @@ def main():
         print("\n  >> resources table already exists, skipping migration 003")
     else:
         run_migration(conn, "Migration 003 (resources table)", MIGRATION_003)
+
+    # Check if is_approved column already exists on users
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'users' AND column_name = 'is_approved';
+    """)
+    has_is_approved = cur.fetchone() is not None
+    cur.close()
+
+    if has_is_approved:
+        print("\n  >> is_approved column already exists, skipping migration 004")
+    else:
+        run_migration(conn, "Migration 004 (OTP auth columns)", MIGRATION_004)
 
     # Show final state
     print("\n=== AFTER MIGRATIONS ===")

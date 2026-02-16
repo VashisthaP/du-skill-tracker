@@ -87,6 +87,9 @@ def create_app(config_name=None):
         # Seed default skills if the skills table is empty
         _seed_default_skills(app)
 
+        # Ensure super admin exists
+        _ensure_super_admin(app)
+
     app.logger.info(f"SkillHive started in {config_name} mode")
     return app
 
@@ -255,3 +258,50 @@ def _seed_default_skills(app):
         except Exception as e:
             db.session.rollback()
             app.logger.error(f"Failed to seed skills: {e}")
+
+
+def _ensure_super_admin(app):
+    """
+    Ensure the super admin (pratyush.vashistha@accenture.com) exists
+    and has admin role + is approved. Creates the user on first run.
+    """
+    from app.models import User
+
+    SUPER_ADMIN_EMAIL = 'pratyush.vashistha@accenture.com'
+
+    super_admin = User.query.filter_by(email=SUPER_ADMIN_EMAIL).first()
+    if not super_admin:
+        super_admin = User(
+            email=SUPER_ADMIN_EMAIL,
+            display_name='Pratyush Vashistha',
+            enterprise_id='pratyush.vashistha',
+            role='admin',
+            is_active=True,
+            is_approved=True,
+        )
+        db.session.add(super_admin)
+        try:
+            db.session.commit()
+            app.logger.info(f"Super admin created: {SUPER_ADMIN_EMAIL}")
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Failed to create super admin: {e}")
+    else:
+        # Ensure super admin always has admin role and is approved
+        changed = False
+        if super_admin.role != 'admin':
+            super_admin.role = 'admin'
+            changed = True
+        if not super_admin.is_approved:
+            super_admin.is_approved = True
+            changed = True
+        if not super_admin.is_active:
+            super_admin.is_active = True
+            changed = True
+        if changed:
+            try:
+                db.session.commit()
+                app.logger.info("Super admin status ensured")
+            except Exception as e:
+                db.session.rollback()
+                app.logger.error(f"Failed to update super admin: {e}")

@@ -64,6 +64,12 @@ class Config:
     DEMANDS_PER_PAGE = 12
     APPLICATIONS_PER_PAGE = 20
 
+    # ---------- Session Security ----------
+    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour session timeout
+    REMEMBER_COOKIE_DURATION = 86400  # 1 day remember me duration
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
 
 class DevelopmentConfig(Config):
     """Development configuration with debug mode and SQLite."""

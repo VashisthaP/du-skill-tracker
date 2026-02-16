@@ -1713,3 +1713,244 @@ SkillHive uses a **numbered SQL migration** approach:
 ---
 
 *End of Interviewer Guide (v1.2 — Q1–Q66)*
+---
+
+## Section 10: Change Request — v1.3 (OTP Authentication, Super Admin & User Approval)
+
+> **Scenario Context:** The client has raised a Change Request (CR) for SkillHive v1.3 with the following requirements:
+> 1. Remove the "Manage Applications" tab — resources will no longer self-apply for open RRDs.
+> 2. Replace password-based login with OTP-based authentication, restricted to `@accenture.com` emails only.
+> 3. Only admin-approved users can log in. A designated Super Admin (`pratyush.vashistha@accenture.com`) controls all user roles, approvals, and deletions.
+> 4. Add session security hardening (timeouts, cookie flags).
+> 5. Update the test suite to cover the new authentication flow.
+
+---
+
+### Q67: As a developer, how would you approach removing the "Manage Applications" feature from a Flask portal without breaking existing data or routes?
+
+**Answer:**  
+
+The approach used in SkillHive v1.3 is a **soft removal** — the UI entry points are removed but the backend routes and database tables are preserved:
+
+1. **Remove navigation items** from `base.html` (navbar link) and `dashboard.html` (quick action button).
+2. **Remove export link** from the admin dropdown menu.
+3. **Keep the routes in `app/routes/applications.py`** — they become inaccessible through the UI but are still functional if accessed directly. This is intentional:
+   - Preserves historical application data in the database.
+   - Avoids cascading code changes (forms, models, migrations).
+   - Allows the feature to be re-enabled quickly if requirements change.
+
+A more aggressive approach would be to remove the blueprint registration in `__init__.py` (returning 404 for all `/applications/*` routes), but this risks breaking any saved bookmarks or external integrations without providing a helpful error message.
+
+---
+
+### Q68: Explain the OTP authentication flow implemented in SkillHive v1.3. What are the key components?
+
+**Answer:**  
+
+The OTP flow is a two-step passwordless authentication:
+
+**Step 1 — Email Submission (`/auth/login` POST):**
+```
+User enters email → Validate @accenture.com domain → Check user exists →
+Check is_active → Check is_approved → Generate 6-digit OTP → Store in DB →
+Send via Flask-Mail → Store email in session → Redirect to /auth/verify-otp
+```
+
+**Step 2 — OTP Verification (`/auth/verify-otp` POST):**
+```
+User enters 6-digit code → Retrieve email from session → Find user →
+Call user.verify_otp(code) → If valid: clear OTP, set last_login_at,
+login_user() → Redirect to dashboard
+```
+
+**Key components:**
+| Component | Purpose |
+|-----------|---------|
+| `User.generate_otp()` | Generates random 6-digit code, sets 10-minute expiry via `datetime.utcnow() + timedelta(minutes=10)` |
+| `User.verify_otp(code)` | Validates code + checks expiry + clears OTP after use (one-time) |
+| `_send_otp_email()` | Uses Flask-Mail with HTML template; falls back to console logging in dev mode |
+| `session['otp_email']` | Passes the email between login and verify steps across HTTP requests |
+| `otp_email.html` | Branded HTML email template with large OTP display |
+
+**Security features:**
+- OTP is single-use (cleared after verification).
+- 10-minute expiry prevents replay attacks.
+- Domain restriction (`@accenture.com`) at the route level.
+- Admin approval gate (`is_approved` flag) before OTP is even generated.
+
+---
+
+### Q69: Why was `datetime.utcnow()` used instead of `datetime.now(timezone.utc)` for OTP expiry in the model? What problem does this solve?
+
+**Answer:**  
+
+This is a practical decision driven by **database compatibility**:
+
+- **SQLite** (used for testing and local development) stores datetimes as **naive** (no timezone info). When you read them back, they come back as naive `datetime` objects.
+- **`datetime.now(timezone.utc)`** returns a **timezone-aware** datetime.
+- Comparing aware vs. naive datetimes raises `TypeError: can't compare offset-naive and offset-aware datetimes`.
+
+Using `datetime.utcnow()` (which returns a naive datetime in UTC) ensures consistent comparison across both SQLite (testing) and PostgreSQL (production). PostgreSQL's `TIMESTAMP` column also stores naive datetimes by default (as opposed to `TIMESTAMPTZ`).
+
+**Trade-off:** `datetime.utcnow()` is deprecated in Python 3.12+. A more future-proof approach would be to use `TIMESTAMPTZ` in PostgreSQL and `datetime.now(timezone.utc)` everywhere, with a custom SQLAlchemy type decorator to ensure SQLite compatibility.
+
+---
+
+### Q70: How does the Super Admin pattern work in SkillHive? How is it protected from accidental changes?
+
+**Answer:**  
+
+The Super Admin (`pratyush.vashistha@accenture.com`) is protected at **four levels**:
+
+1. **Model Level:** `User.SUPER_ADMIN_EMAIL` constant + `is_super_admin` property:
+   ```python
+   @property
+   def is_super_admin(self):
+       return self.email.lower() == self.SUPER_ADMIN_EMAIL.lower()
+   ```
+
+2. **App Startup (`__init__.py`):** `_ensure_super_admin()` runs on every application start:
+   - Creates the super admin if not in DB (role=admin, is_active=True, is_approved=True).
+   - If already exists, ensures role/active/approved flags are correct. This prevents the super admin from being locked out even if the database is manually modified.
+
+3. **Route Level (`admin.py`):**
+   - `delete_user`: Cannot delete the super admin.
+   - `revoke_user`: Cannot deactivate the super admin.
+   - `update_user_role`: Cannot change the super admin's role.
+   - Only the super admin can assign the "admin" role or delete users.
+
+4. **Template Level (`users.html`):**
+   - Super admin gets an "SA" badge — no action buttons are rendered for that row.
+   - "Admin" role option in Add User modal only visible to super admin.
+
+---
+
+### Q71: What database migration strategy was used for the OTP auth changes? How does it handle existing users?
+
+**Answer:**  
+
+**Migration 004 (`004_otp_auth_columns.sql`)** adds four columns:
+```sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
+```
+
+**Critical data migration for existing users:**
+```sql
+UPDATE users SET is_approved = TRUE WHERE is_active = TRUE;
+```
+This ensures all currently active users are not locked out when the approval gate is deployed. New users created after the migration will have `is_approved = FALSE` by default and must be approved by the admin.
+
+**Super admin seeding via UPSERT:**
+```sql
+INSERT INTO users (...) VALUES ('pratyush.vashistha@accenture.com', ...)
+ON CONFLICT (email) DO UPDATE SET role = 'admin', is_active = TRUE, is_approved = TRUE;
+```
+
+The migration script (`run_migrations.py`) checks `is_approved` column existence before running, making it idempotent.
+
+---
+
+### Q72: What session security hardening was applied in v1.3? Explain each setting.
+
+**Answer:**  
+
+Four settings were added to `config.py`:
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `PERMANENT_SESSION_LIFETIME` | 3600 (1 hour) | Session expires after 1 hour of inactivity — forces re-authentication |
+| `REMEMBER_COOKIE_DURATION` | 86400 (1 day) | "Remember me" cookie lasts 24 hours max |
+| `SESSION_COOKIE_HTTPONLY` | `True` | Prevents JavaScript from accessing the session cookie (mitigates XSS) |
+| `SESSION_COOKIE_SAMESITE` | `'Lax'` | Prevents CSRF by not sending the cookie on cross-origin POST requests |
+
+**Combined with OTP auth**, this creates a defense-in-depth approach:
+- Even if someone steals a session cookie (XSS), it expires in 1 hour.
+- The `HttpOnly` flag makes it harder to steal via JavaScript injection.
+- `SameSite=Lax` blocks cross-site form submissions from triggering authenticated actions.
+
+---
+
+### Q73: How does the user approval workflow interact with OTP authentication? Walk through a new user's journey.
+
+**Answer:**  
+
+**New User Journey:**
+
+1. **User visits `/auth/login`** — enters their `@accenture.com` email.
+2. **Not registered:** Flash message — "Your account is not registered. Please contact the administrator."
+3. **Admin creates user:** Via `/admin/users` → "Add User" modal (enters display name, email, role). User is created with `is_approved = True` (admin-added users are pre-approved).
+4. **User retries login:** Email found, `is_active = True`, `is_approved = True` → OTP generated and sent.
+5. **User enters OTP** → Logged in, redirected to dashboard.
+
+**Alternative flow (self-registration not implemented):** If self-registration were added later, a new user would:
+1. Register → `is_approved = False` by default.
+2. See "Your account is pending admin approval" message on login attempt.
+3. Admin sees user in "Pending Approval" section of admin dashboard.
+4. Admin clicks "Approve" → `is_approved = True`.
+5. User can now log in via OTP.
+
+---
+
+### Q74: How were the existing test cases affected by the authentication rewrite? What new tests were added?
+
+**Answer:**  
+
+**Modified tests:**
+- `test_login_page` — Updated assertion to check for `'accenture.com'` instead of password-related content.
+- `test_login_invalid_creds` — Removed (password no longer used). Replaced with:
+  - `test_login_non_accenture_email` — Verifies domain restriction.
+  - `test_login_unregistered_accenture_email` — Verifies unknown user handling.
+  - `test_login_unapproved_user` — Verifies approval gate.
+  - `test_login_otp_flow` — Full end-to-end: create approved user → POST login → extract OTP from DB → POST verify-otp → assert logged in.
+
+**New test classes:**
+- **`TestOTPAuth`** (5 tests): `generate_otp`, `verify_otp_valid`, `verify_otp_invalid`, `verify_otp_expired`, `is_super_admin`.
+- **`TestUserApproval`** (2 tests): `new_user_not_approved`, `approve_user`.
+
+**Testing challenge:** The OTP flow test must extract the OTP from the database after the login POST (since it's randomly generated). In production, the OTP would arrive via email — but in testing, we bypass email and read directly from `User.otp_code`.
+
+---
+
+### Q75: If a team member asked you to add Multi-Factor Authentication (MFA) on top of OTP in SkillHive, how would you design it?
+
+**Answer:**  
+
+OTP is already single-factor (something you have — email access). True MFA would add a second factor:
+
+**Option 1 — TOTP (Time-based OTP) via authenticator app:**
+- Add `totp_secret` column to `User` model (encrypted).
+- After email OTP verification, prompt for TOTP from Google Authenticator / Microsoft Authenticator.
+- Use `pyotp` library for TOTP generation and verification.
+- Enrollment: Admin enables MFA → user scans QR code → enters confirmation code.
+
+**Option 2 — Passkey / WebAuthn (passwordless hardware key):**
+- Use `py_webauthn` library.
+- Register the user's security key or biometric (Windows Hello, Touch ID).
+- After email OTP, prompt for passkey tap.
+
+**Recommended for SkillHive:** TOTP via authenticator app — it's lightweight, doesn't require hardware, and integrates well with the existing flow. The email OTP becomes "first factor" and TOTP becomes "second factor."
+
+---
+
+### Q76: What are the risks of hardcoding the Super Admin email? How would you make it configurable?
+
+**Answer:**  
+
+**Current risks:**
+- Changing the super admin requires a code deployment (not runtime configurable).
+- If the email address changes (e.g., employee leaves), no one has super admin access until code is updated and redeployed.
+- The email appears in multiple files (`models.py`, `auth.py`, `admin.py`, `__init__.py`).
+
+**Better approaches (increasingly robust):**
+1. **Environment variable:** `SUPER_ADMIN_EMAIL = os.environ.get('SUPER_ADMIN_EMAIL', 'pratyush.vashistha@accenture.com')` — configurable per deployment via Azure App Settings.
+2. **Database flag:** Add `is_super_admin` boolean column instead of email comparison. Multiple super admins become possible.
+3. **Role hierarchy:** Introduce `superadmin` as a distinct role above `admin`, managed via DB rather than code. The `_ensure_super_admin()` startup function could read from env var.
+
+**Why hardcoding was chosen for v1.3:** Simplicity. The portal is small (< 50 users), has a single known admin, and the priority was rapid delivery. The env-var approach would be the first refactoring step.
+
+---
+
+*End of Interviewer Guide (v1.3 — Q1–Q76)*

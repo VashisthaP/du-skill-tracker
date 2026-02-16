@@ -10,7 +10,7 @@ SQLAlchemy ORM models representing the core data entities:
 - ApplicationHistory: Audit trail for application status changes
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db, login_manager
@@ -43,12 +43,13 @@ demand_skills = db.Table(
 # =====================================================
 class User(UserMixin, db.Model):
     """
-    User model synced from Azure AD / Entra ID.
+    User model for SkillHive portal.
     Roles:
-        - admin: Full system access, user management
+        - admin: Full system access, user management (super admin: pratyush.vashistha@accenture.com)
         - pmo: Create/manage demands, manage applications
         - evaluator: Evaluate applications, update status
-        - resource: View demands, apply for evaluation (default)
+        - resource: View demands (default)
+    Authentication: OTP-based, restricted to @accenture.com emails approved by admin.
     """
     __tablename__ = 'users'
 
@@ -57,16 +58,25 @@ class User(UserMixin, db.Model):
     azure_ad_id = db.Column(db.String(255), unique=True, nullable=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     display_name = db.Column(db.String(255), nullable=False)
-    # Password hash for local authentication
+    # Password hash for local authentication (legacy, kept for backward compat)
     password_hash = db.Column(db.String(256), nullable=True)
-    # Accenture Enterprise ID (e.g., "john.doe")
+    # Accenture Enterprise ID (e.g., "pratyush.vashistha")
     enterprise_id = db.Column(db.String(50), nullable=True)
     # Role determines access level throughout the application
     role = db.Column(db.String(20), nullable=False, default='resource')
     is_active = db.Column(db.Boolean, default=True)
+    # Admin approval flag - only approved users can log in
+    is_approved = db.Column(db.Boolean, default=False)
+    # OTP fields for passwordless authentication
+    otp_code = db.Column(db.String(6), nullable=True)
+    otp_expires_at = db.Column(db.DateTime, nullable=True)
+    last_login_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                            onupdate=lambda: datetime.now(timezone.utc))
+
+    # Super admin email - only this user has full admin control
+    SUPER_ADMIN_EMAIL = 'pratyush.vashistha@accenture.com'
 
     # Relationships
     demands_created = db.relationship('Demand', backref='creator', lazy='dynamic',
@@ -75,17 +85,43 @@ class User(UserMixin, db.Model):
                                     foreign_keys='Application.user_id')
 
     def set_password(self, password):
-        """Hash and store a password."""
+        """Hash and store a password (legacy support)."""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """Verify a password against the stored hash."""
+        """Verify a password against the stored hash (legacy support)."""
         if not self.password_hash:
             return False
         return check_password_hash(self.password_hash, password)
 
+    def generate_otp(self):
+        """Generate a 6-digit OTP valid for 10 minutes."""
+        import random
+        self.otp_code = str(random.randint(100000, 999999))
+        self.otp_expires_at = datetime.utcnow() + timedelta(minutes=10)
+        return self.otp_code
+
+    def verify_otp(self, code):
+        """Verify the OTP code and check expiration."""
+        if not self.otp_code or not self.otp_expires_at:
+            return False
+        if datetime.utcnow() > self.otp_expires_at:
+            return False
+        if self.otp_code != code.strip():
+            return False
+        # Clear OTP after successful verification
+        self.otp_code = None
+        self.otp_expires_at = None
+        self.last_login_at = datetime.utcnow()
+        return True
+
     def __repr__(self):
         return f'<User {self.email} ({self.role})>'
+
+    @property
+    def is_super_admin(self):
+        """Check if user is the super admin (Pratyush Vashistha)."""
+        return self.email.lower() == self.SUPER_ADMIN_EMAIL.lower()
 
     @property
     def is_admin(self):

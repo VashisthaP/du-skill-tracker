@@ -115,11 +115,7 @@
                         <a href="{{ url_for('demands.list_demands') }}" class="btn btn-outline-purple btn-sm text-start">
                             <i class="bi bi-search me-2"></i>Browse Available RRDs
                         </a>
-                        {% if current_user.is_pmo or current_user.is_evaluator %}
-                        <a href="{{ url_for('applications.manage') }}" class="btn btn-outline-purple btn-sm text-start">
-                            <i class="bi bi-kanban me-2"></i>Manage Applications
-                        </a>
-                        {% endif %}
+
                         {% if current_user.is_pmo %}
                         <a href="{{ url_for('demands.list_demands') }}" class="btn btn-outline-purple btn-sm text-start">
                             <i class="bi bi-cloud-arrow-up me-2"></i>Upload Resources (via RRD)
