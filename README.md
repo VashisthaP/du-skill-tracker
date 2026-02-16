@@ -1,6 +1,6 @@
 # SkillHive
 
-> **DU Demand & Supply Tracker** — An Accenture-branded web portal for tracking Delivery Unit skill demands, resource evaluations, and talent supply.
+> **DU Demand & Supply Tracker** — A web portal for tracking Delivery Unit skill demands, resource evaluations, and talent supply.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FVashisthaP%2Fdu-skill-tracker%2Fmain%2Finfrastructure%2Fazuredeploy.json)
 
@@ -15,7 +15,7 @@
 | **Status Tracking** | Applied → Under Evaluation → Selected / Rejected with full audit trail |
 | **Trending Skills** | Visual skill cloud and bar charts showing most-demanded skills |
 | **Email Notifications** | Automated emails to demand raiser and evaluator on key events |
-| **Excel Export** | Download demands and applications as Accenture-themed Excel files |
+| **Excel Export** | Download demands and applications as formatted Excel files |
 | **Role-Based Access** | Admin, PMO, Evaluator, and Resource roles with granular permissions |
 | **Azure AD SSO** | Single sign-on via Microsoft Entra ID (Azure Active Directory) |
 
