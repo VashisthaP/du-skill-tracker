@@ -23,6 +23,7 @@ email-validator==2.1.0
 
 # ---------- Email ----------
 Flask-Mail==0.9.1
+azure-communication-email==1.0.0
 
 # ---------- Excel Export ----------
 openpyxl==3.1.2

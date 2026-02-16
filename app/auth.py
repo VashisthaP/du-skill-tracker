@@ -29,26 +29,46 @@ SUPER_ADMIN_EMAIL = 'pratyush.vashistha@accenture.com'
 
 
 # =====================================================
-# HELPER: Send OTP Email
+# HELPER: Send OTP Email via Azure Communication Services
 # =====================================================
 def _send_otp_email(user, otp_code):
     """
-    Send OTP email using Flask-Mail.
-    Falls back to logging the OTP if email sending fails (dev mode).
+    Send OTP email using Azure Communication Services Email.
+    Falls back to showing OTP on screen if email sending fails.
     """
     try:
-        from flask_mail import Message
-        from app import mail
-
-        msg = Message(
-            subject=f'SkillHive Login OTP: {otp_code}',
-            recipients=[user.email],
-            html=render_template('auth/otp_email.html',
-                                 user=user, otp_code=otp_code),
-        )
-        mail.send(msg)
-        current_app.logger.info(f"OTP email sent to {user.email}")
+        import os
+        from azure.communication.email import EmailClient
+        
+        # Get connection string from environment
+        connection_string = os.environ.get('ACS_CONNECTION_STRING')
+        sender_address = os.environ.get('ACS_SENDER_ADDRESS', 'DoNotReply@a8893722-b871-4209-a13f-ef852f7cfec5.azurecomm.net')
+        
+        if not connection_string:
+            current_app.logger.warning("ACS_CONNECTION_STRING not configured")
+            return False
+        
+        client = EmailClient.from_connection_string(connection_string)
+        
+        # Build the email message
+        message = {
+            "senderAddress": sender_address,
+            "recipients": {
+                "to": [{"address": user.email}]
+            },
+            "content": {
+                "subject": f"SkillHive Login OTP: {otp_code}",
+                "html": render_template('auth/otp_email.html', user=user, otp_code=otp_code)
+            }
+        }
+        
+        # Send with polling - wait up to 60 seconds
+        poller = client.begin_send(message)
+        result = poller.result()
+        
+        current_app.logger.info(f"OTP email sent to {user.email}, MessageId: {result.get('id')}")
         return True
+        
     except Exception as e:
         current_app.logger.warning(
             f"Failed to send OTP email to {user.email}: {e}. "
