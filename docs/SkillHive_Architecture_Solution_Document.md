@@ -1,6 +1,6 @@
 # SkillHive – Functional & Technical Architecture Solution Document
 
-**Document Version:** 1.3  
+**Document Version:** 1.3.1  
 **Date:** February 16, 2026  
 **Project:** SkillHive – DU Demand & Supply Tracker  
 **Classification:** Internal  
@@ -288,8 +288,9 @@ app/
 | 3 | **Azure Blob Storage**                 | StorageV2, LRS     | Resume file storage (`.docx`, `.pptx`)           |
 | 4 | **Azure Application Insights**         | Web component      | Application performance monitoring & diagnostics |
 | 5 | **Azure Log Analytics Workspace**      | PerGB2018          | Centralized log aggregation & querying           |
-| 6 | **Azure Resource Manager (ARM)**       | IaC Templates      | Infrastructure-as-Code deployment                |
-| 7 | **Office 365 SMTP**                    | Port 587 / TLS     | Transactional email notifications                |
+| 6 | **Azure Communication Services**       | Global (India)     | Email sending infrastructure for OTP delivery    |
+| 7 | **Azure Communication Services Email** | Azure-Managed      | Email domain & sender address management         |
+| 8 | **Azure Resource Manager (ARM)**       | IaC Templates      | Infrastructure-as-Code deployment                |
 
 ### 4.2 Azure App Service Configuration
 
@@ -312,8 +313,8 @@ app/
 | `AZURE_STORAGE_CONNECTION_STRING` | Blob Storage access credentials           |
 | `AZURE_STORAGE_CONTAINER`         | Blob container name ("resumes")           |
 | `APPINSIGHTS_INSTRUMENTATIONKEY`  | Application Insights telemetry key        |
-| `MAIL_SERVER`                     | SMTP server hostname                      |
-| `MAIL_USERNAME` / `MAIL_PASSWORD` | SMTP authentication credentials           |
+| `ACS_CONNECTION_STRING`           | Azure Communication Services connection   |
+| `ACS_SENDER_ADDRESS`              | Email sender address (DoNotReply@...)     |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT`  | Enables Oryx build pipeline               |
 
 ### 4.3 Azure Database for PostgreSQL – Flexible Server
@@ -371,14 +372,40 @@ The project includes a comprehensive ARM template (`infrastructure/azuredeploy.j
 6. PostgreSQL Database (`skillhive`)
 7. PostgreSQL Firewall Rule (Allow Azure Services)
 8. Storage Account (for resume uploads)
+9. Azure Communication Services (global, India data location)
+10. Azure Communication Services Email Service
+11. Azure-Managed Email Domain (for sender address)
 
 **Deployment Parameters:**
 - `appName` – Unique application name (used across all resource names)
 - `location` – Azure region (defaults to resource group location)
 - `postgresAdminUser` – Database admin username
 - `postgresAdminPassword` – Database admin password (secure)
-- `mailServer` – SMTP server hostname
-- `mailUsername` / `mailPassword` – SMTP credentials
+
+### 4.7 Azure Communication Services Email
+
+| Parameter          | Value                                          |
+|--------------------|------------------------------------------------|
+| Service Type       | Azure Communication Services (Global)          |
+| Data Location      | India                                          |
+| Email Service      | Azure-managed domain                           |
+| Sender Address     | `DoNotReply@{guid}.azurecomm.net`              |
+| SDK                | azure-communication-email 1.0.0                |
+| Pricing            | First 1,000 emails/month FREE, then ~$0.00025/email |
+
+**Email Flow:**
+1. User requests OTP on login page
+2. Application generates 6-digit OTP and stores in database with 10-minute expiry
+3. `EmailClient.from_connection_string()` initializes Azure SDK
+4. Email message built with HTML template (`auth/otp_email.html`)
+5. `client.begin_send(message)` sends email asynchronously with polling
+6. Email delivered to user's inbox from `DoNotReply@{domain}.azurecomm.net`
+
+**Benefits over SMTP:**
+- No corporate SMTP credentials required (avoids IT security policies)
+- Azure-native integration with ARM templates
+- Built-in high availability and delivery tracking
+- Pay-per-use pricing with generous free tier
 
 ---
 

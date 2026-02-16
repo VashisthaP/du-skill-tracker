@@ -2243,3 +2243,286 @@ INSERT INTO app_config VALUES ('business_end_hour', '24');
 ---
 
 *End of Interviewer Guide (v1.3.1 — Q1–Q85)*
+
+---
+
+## Section 12: Azure Communication Services Email (Q86–Q95)
+
+> These questions cover the implementation of Azure Communication Services (ACS) Email for OTP delivery, replacing traditional SMTP approaches.
+
+---
+
+### Q86: Why did SkillHive choose Azure Communication Services Email over traditional SMTP (e.g., Office 365)?
+
+**Answer:**  
+
+| Factor                        | Office 365 SMTP                     | Azure Communication Services       |
+|-------------------------------|-------------------------------------|-------------------------------------|
+| **Corporate Security**        | Often blocked by IT policies        | Azure-native, no corporate blockers |
+| **App Passwords**             | Requires 2FA app password setup     | Uses connection string (auto-generated) |
+| **ARM Template Integration**  | Manual credential configuration     | Fully automated in IaC              |
+| **Pricing**                   | Included in O365 license            | 1,000 emails/month FREE, then ~$0.00025/email |
+| **Deliverability**            | Depends on sender reputation        | Azure-managed domain with high deliverability |
+| **Scaling**                   | Rate limits apply                   | Built for transactional email scale |
+
+**SkillHive's scenario:** Corporate security blocked app password creation in Microsoft 365, making ACS the pragmatic choice for a self-contained Azure deployment.
+
+---
+
+### Q87: Explain the Azure Communication Services resource hierarchy for email sending.
+
+**Answer:**  
+
+```
+Azure Subscription
+    └── Resource Group (rg-skillhive)
+            ├── Communication Service (skillhive-acs)
+            │       ├── Data Location: India
+            │       └── Linked Domains: [email domain below]
+            │
+            └── Email Communication Service (skillhive-email)
+                    └── Domain (AzureManagedDomain)
+                            ├── Domain Type: Azure-Managed
+                            ├── Mail From: DoNotReply@{guid}.azurecomm.net
+                            └── Sender Username: DoNotReply
+```
+
+**Key relationships:**
+1. **Email Service** hosts the domain configuration
+2. **Domain** defines sender addresses
+3. **Communication Service** must have `linkedDomains` pointing to the domain
+4. App uses Communication Service connection string to send
+
+---
+
+### Q88: How does the `_send_otp_email()` function work with Azure Communication Services?
+
+**Answer:**  
+
+```python
+def _send_otp_email(user, otp_code):
+    from azure.communication.email import EmailClient
+    
+    # 1. Initialize client with connection string
+    connection_string = os.environ.get('ACS_CONNECTION_STRING')
+    client = EmailClient.from_connection_string(connection_string)
+    
+    # 2. Build message structure
+    message = {
+        "senderAddress": os.environ.get('ACS_SENDER_ADDRESS'),
+        "recipients": {"to": [{"address": user.email}]},
+        "content": {
+            "subject": f"SkillHive Login OTP: {otp_code}",
+            "html": render_template('auth/otp_email.html', user=user, otp_code=otp_code)
+        }
+    }
+    
+    # 3. Send with async polling
+    poller = client.begin_send(message)
+    result = poller.result()  # Blocks until sent or failed
+    
+    return True
+```
+
+**Key features:**
+- `begin_send()` returns a poller for async operation
+- `poller.result()` blocks until completion (with timeout)
+- Connection string includes both endpoint and access key
+- Sender address must match a configured domain sender
+
+---
+
+### Q89: What's the difference between Azure-managed and custom domains in ACS Email?
+
+**Answer:**  
+
+| Feature                | Azure-Managed Domain                    | Custom Domain                          |
+|------------------------|-----------------------------------------|----------------------------------------|
+| **Setup Time**         | Instant (auto-provisioned)              | Hours (DNS verification required)      |
+| **Sender Address**     | `DoNotReply@{guid}.azurecomm.net`       | `noreply@yourdomain.com`               |
+| **Branding**           | Shows Azure domain to recipients        | Full brand control                     |
+| **DNS Records**        | None required                           | SPF, DKIM, DMARC required              |
+| **Cost**               | Same pricing                            | Same pricing                           |
+| **Use Case**           | Quick start, internal tools             | Production, customer-facing            |
+
+**SkillHive uses Azure-managed** because it's an internal tool and quick setup was prioritized over branding.
+
+---
+
+### Q90: How is the ACS connection string structured, and what security considerations apply?
+
+**Answer:**  
+
+**Connection string format:**
+```
+endpoint=https://{resource-name}.{region}.communication.azure.com/;accesskey={base64-key}
+```
+
+**Example:**
+```
+endpoint=https://skillhive-acs.india.communication.azure.com/;accesskey=5OBHhx...
+```
+
+**Security considerations:**
+1. **Store as App Setting** – Never commit to source code
+2. **Use Key Vault** – For production, reference from Azure Key Vault
+3. **Rotate keys** – ACS provides primary and secondary keys for rotation
+4. **Least privilege** – Connection string grants full send access; use managed identity for finer control
+5. **Network restrictions** – Can limit to VNet for private access
+
+**ARM Template approach:**
+```json
+{ "name": "ACS_CONNECTION_STRING", "value": "[concat('endpoint=...;accesskey=', listKeys(...))]" }
+```
+
+---
+
+### Q91: What happens if the ACS email send fails? How does SkillHive handle this?
+
+**Answer:**  
+
+**Current fallback strategy:**
+```python
+try:
+    poller = client.begin_send(message)
+    result = poller.result()
+    return True
+except Exception as e:
+    current_app.logger.warning(f"Failed to send OTP: {e}")
+    return False
+```
+
+**When email fails:**
+1. Exception logged with full error details
+2. `_send_otp_email()` returns `False`
+3. Caller (login route) shows warning flash message
+4. User cannot proceed without OTP
+
+**Potential improvements:**
+1. **Retry logic** – Use exponential backoff for transient failures
+2. **Queue fallback** – Store failed emails in database, retry via background job
+3. **Alternative channel** – Fall back to showing OTP on screen (current super admin behavior)
+4. **Monitoring alerts** – Set up Application Insights alerts for email failures
+
+---
+
+### Q92: How do you provision ACS Email resources in an ARM template?
+
+**Answer:**  
+
+```json
+// 1. Email Service
+{
+    "type": "Microsoft.Communication/emailServices",
+    "apiVersion": "2023-04-01",
+    "name": "[variables('acsEmailName')]",
+    "location": "global",
+    "properties": {
+        "dataLocation": "india"
+    }
+},
+// 2. Azure-Managed Domain
+{
+    "type": "Microsoft.Communication/emailServices/domains",
+    "apiVersion": "2023-04-01",
+    "name": "[concat(variables('acsEmailName'), '/AzureManagedDomain')]",
+    "dependsOn": ["[resourceId('Microsoft.Communication/emailServices', variables('acsEmailName'))]"],
+    "properties": {
+        "domainManagement": "AzureManaged"
+    }
+},
+// 3. Communication Service with linked domain
+{
+    "type": "Microsoft.Communication/communicationServices",
+    "apiVersion": "2023-04-01",
+    "name": "[variables('acsName')]",
+    "location": "global",
+    "dependsOn": ["[resourceId('Microsoft.Communication/emailServices/domains', ...)]"],
+    "properties": {
+        "dataLocation": "india",
+        "linkedDomains": ["[resourceId('Microsoft.Communication/emailServices/domains', ...)]"]
+    }
+}
+```
+
+**Key points:**
+- Email Service must be created before Domain
+- Domain must be created before linking to Communication Service
+- `linkedDomains` array enables email sending from that Communication Service
+
+---
+
+### Q93: What is the pricing model for Azure Communication Services Email?
+
+**Answer:**  
+
+| Tier                     | Cost                                    |
+|--------------------------|-----------------------------------------|
+| **First 1,000 emails/month** | FREE                                 |
+| **Beyond 1,000**         | ~$0.00025 per email                     |
+| **Attachments**          | Additional cost based on size           |
+
+**SkillHive estimate (100 users, 2 logins/day):**
+- Daily emails: 100 × 2 = 200 OTP emails
+- Monthly emails: 200 × 22 working days = 4,400 emails
+- Cost: (4,400 - 1,000) × $0.00025 = **~$0.85/month**
+
+**Compared to SendGrid free tier:** SendGrid offers 100 emails/day free but only for 60-day trial. ACS free tier is permanent.
+
+---
+
+### Q94: How would you monitor ACS Email delivery and troubleshoot failures?
+
+**Answer:**  
+
+**1. Application Insights integration:**
+```python
+# Log send results
+current_app.logger.info(f"Email sent: MessageId={result.get('id')}, Status={result.get('status')}")
+```
+
+**2. Azure Monitor for ACS:**
+- Navigate to ACS resource → Monitoring → Metrics
+- Key metrics: `Email Send Requests`, `Email Delivery Status`, `Email Send Failed`
+
+**3. ACS Email diagnostic logs:**
+```bash
+az monitor diagnostic-settings create \
+    --resource /subscriptions/.../Microsoft.Communication/communicationServices/skillhive-acs \
+    --logs '[{"category":"EmailSendMailOperational","enabled":true}]'
+```
+
+**4. Email delivery statuses:**
+- `Queued` → Email accepted by ACS
+- `OutForDelivery` → Being sent to recipient
+- `Delivered` → Recipient server accepted
+- `Failed` → Permanent failure (bad address, etc.)
+
+**5. Common failure reasons:**
+- Invalid sender address (not configured in domain)
+- Connection string expired/rotated
+- Recipient domain blocks Azure IPs (rare)
+
+---
+
+### Q95: What are the alternatives to Azure Communication Services for email in an Azure environment?
+
+**Answer:**  
+
+| Service                  | Pros                                     | Cons                                    |
+|--------------------------|------------------------------------------|----------------------------------------|
+| **ACS Email**            | Azure-native, ARM integration, free tier | Azure-managed domain only (or DNS setup) |
+| **SendGrid (Azure)**     | Industry standard, high deliverability   | 60-day free trial only                  |
+| **Office 365 SMTP**      | Included in existing licenses            | Corporate security often blocks         |
+| **Amazon SES**           | Very cheap ($0.10/1000 emails)           | Not Azure-native, requires AWS account  |
+| **Mailgun**              | Developer-friendly, great logs           | Separate vendor relationship            |
+| **Azure Logic Apps**     | No-code email via Office 365 connector   | Per-action pricing, overkill for OTP    |
+
+**SkillHive's decision path:**
+1. ❌ Office 365 SMTP – Corporate blocked app passwords
+2. ❌ SendGrid – Free tier is time-limited
+3. ✅ ACS Email – Azure-native, permanent free tier, ARM template support
+
+---
+
+*End of Interviewer Guide (v1.3.2 — Q1–Q95)*
