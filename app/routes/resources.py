@@ -17,7 +17,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill
 
 from app import db
-from app.models import Demand, Resource
+from app.models import Demand, Resource, Skill
 from app.forms import ResourceUploadForm, ResourceEvaluationForm, ProjectForm
 from app.utils.decorators import pmo_required
 
@@ -123,6 +123,8 @@ def create_project():
     After creation, redirect to upload resources for this project.
     """
     form = ProjectForm()
+    # Get all skills for the tag input
+    all_skills = Skill.query.order_by(Skill.name).all()
 
     if form.validate_on_submit():
         try:
@@ -143,6 +145,16 @@ def create_project():
             )
 
             db.session.add(project)
+            db.session.flush()  # Get project ID before adding skills
+
+            # Add skills if provided
+            skills_str = form.skills.data or ''
+            for skill_name in skills_str.split(','):
+                skill_name = skill_name.strip()
+                if skill_name:
+                    skill = Skill.get_or_create(skill_name)
+                    project.skills.append(skill)
+
             db.session.commit()
 
             flash(f'Project "{project.project_name}" created successfully! Now upload resources.', 'success')
@@ -153,7 +165,7 @@ def create_project():
             current_app.logger.error(f"Error creating project: {e}")
             flash('An error occurred while creating the project. Please try again.', 'danger')
 
-    return render_template('resources/create_project.html', form=form)
+    return render_template('resources/create_project.html', form=form, all_skills=all_skills)
 
 
 # =====================================================

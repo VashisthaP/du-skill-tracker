@@ -123,6 +123,9 @@
                 {% endif %}
                 <div class="demand-card-meta mt-2">
                     <span><i class="bi bi-hash me-1"></i>{{ demand.rrd }}</span>
+                    {% if demand.manager_name %}
+                    <span><i class="bi bi-person-badge me-1"></i>{{ demand.manager_name }}</span>
+                    {% endif %}
                 </div>
                 <div class="demand-card-skills mt-2">
                     {% for skill in demand.skills[:4] %}

@@ -47,6 +47,18 @@
                                 <div class="invalid-feedback">{{ error }}</div>
                                 {% endfor %}
                             </div>
+                            <div class="col-md-4">
+                                <label class="form-label">DU Name</label>
+                                {{ form.du_name(class="form-control", placeholder="e.g., Technology Consulting") }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Client Name</label>
+                                {{ form.client_name(class="form-control", placeholder="e.g., ABC Corporation") }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Manager Name</label>
+                                {{ form.manager_name(class="form-control", placeholder="e.g., John Smith") }}
+                            </div>
                         </div>
 
                         <!-- ===== Skills & Requirements ===== -->
@@ -102,22 +114,19 @@
                             </div>
                         </div>
 
-                        <!-- ===== Evaluator Information ===== -->
-                        <h5 class="section-divider mt-4"><i class="bi bi-person-check me-2"></i>Evaluator Information</h5>
+                        <!-- ===== Evaluator Information (Optional) ===== -->
+                        <h5 class="section-divider mt-4"><i class="bi bi-person-check me-2"></i>Evaluator Information <span class="text-muted fw-normal">(Optional)</span></h5>
 
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Evaluator Name <span class="text-danger">*</span></label>
-                                {{ form.evaluator_name(class="form-control" + (" is-invalid" if form.evaluator_name.errors else ""), placeholder="e.g., Priya Sharma") }}
-                                {% for error in form.evaluator_name.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                                {% endfor %}
+                                <label class="form-label">Evaluator Name</label>
+                                {{ form.evaluator_name(class="form-control", placeholder="e.g., Priya Sharma") }}
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Evaluator Email <span class="text-danger">*</span></label>
-                                {{ form.evaluator_email(class="form-control" + (" is-invalid" if form.evaluator_email.errors else ""), placeholder="priya.sharma@company.com") }}
+                                <label class="form-label">Evaluator Email</label>
+                                {{ form.evaluator_email(class="form-control", placeholder="priya.sharma@company.com") }}
                                 {% for error in form.evaluator_email.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
+                                <div class="text-danger small">{{ error }}</div>
                                 {% endfor %}
                             </div>
                             <div class="col-md-4">

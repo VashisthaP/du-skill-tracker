@@ -273,6 +273,9 @@ def edit(demand_id):
             demand.project_name = form.project_name.data
             demand.project_code = form.project_code.data
             demand.rrd = form.rrd.data
+            demand.du_name = form.du_name.data
+            demand.client_name = form.client_name.data
+            demand.manager_name = form.manager_name.data
             demand.career_level = form.career_level.data
             demand.num_positions = form.num_positions.data
             demand.start_date = form.start_date.data

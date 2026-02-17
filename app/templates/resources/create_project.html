@@ -79,6 +79,26 @@
                             {% endif %}
                         </div>
 
+                        <!-- Skills -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-stars me-1"></i>Required Skills
+                            </label>
+                            {{ form.skills(id="skillsHidden") }}
+                            <div class="skill-tag-input-container" id="skillTagContainer">
+                                <div id="skillTags" class="d-flex flex-wrap gap-1 mb-2"></div>
+                                <input type="text" id="skillInput" class="form-control"
+                                       placeholder="Type a skill and press Enter (e.g., Python, Azure, React)"
+                                       autocomplete="off" list="skillSuggestions">
+                                <datalist id="skillSuggestions">
+                                    {% for skill in all_skills %}
+                                    <option value="{{ skill.name }}">
+                                    {% endfor %}
+                                </datalist>
+                            </div>
+                            <small class="text-muted">Type a skill name and press Enter or comma to add.</small>
+                        </div>
+
                         <!-- Role / Job Description (Optional) -->
                         <div class="mb-4">
                             <label for="description" class="form-label fw-semibold">
@@ -107,4 +127,86 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// =====================================================
+// SKILL TAG INPUT
+// Allows PMO to type skills and add them as tags
+// =====================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const skillInput = document.getElementById('skillInput');
+    const skillTags = document.getElementById('skillTags');
+    const skillsHidden = document.getElementById('skillsHidden');
+
+    // Initialize skills array
+    let currentSkills = [];
+    const existingValue = skillsHidden.value;
+    if (existingValue) {
+        existingValue.split(',').forEach(s => {
+            s = s.trim();
+            if (s) {
+                currentSkills.push(s);
+                addTagElement(s);
+            }
+        });
+    }
+
+    // Handle skill input - keydown for Enter/comma
+    skillInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addSkill(this.value.replace(',', '').trim());
+            this.value = '';
+        }
+    });
+
+    // Handle datalist selection
+    skillInput.addEventListener('change', function() {
+        var val = this.value.trim();
+        if (val) {
+            addSkill(val);
+            this.value = '';
+        }
+    });
+
+    // Add on blur
+    skillInput.addEventListener('blur', function() {
+        var val = this.value.trim();
+        if (val) {
+            addSkill(val);
+            this.value = '';
+        }
+    });
+
+    // Click on container focuses the input
+    document.getElementById('skillTagContainer').addEventListener('click', function() {
+        skillInput.focus();
+    });
+
+    function addSkill(name) {
+        if (!name || currentSkills.map(s => s.toLowerCase()).includes(name.toLowerCase())) return;
+        currentSkills.push(name);
+        addTagElement(name);
+        updateHiddenField();
+    }
+
+    function addTagElement(name) {
+        const tag = document.createElement('span');
+        tag.className = 'skill-tag-input';
+        tag.innerHTML = name + ' <button type="button" class="btn-close btn-close-sm" aria-label="Remove"></button>';
+        tag.querySelector('button').addEventListener('click', function() {
+            currentSkills = currentSkills.filter(s => s !== name);
+            tag.remove();
+            updateHiddenField();
+        });
+        skillTags.appendChild(tag);
+    }
+
+    function updateHiddenField() {
+        skillsHidden.value = currentSkills.join(',');
+    }
+});
+</script>
 {% endblock %}

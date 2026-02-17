@@ -42,6 +42,11 @@ class ProjectForm(FlaskForm):
         validators=[DataRequired(message='Manager name is required'),
                     Length(max=255)]
     )
+    # ---------- Skills ----------
+    skills = HiddenField(
+        'Required Skills',
+        validators=[Optional()]
+    )
     # ---------- Optional Fields ----------
     description = TextAreaField(
         'Role / Job Description (Optional)',
@@ -129,16 +134,14 @@ class DemandForm(FlaskForm):
         validators=[DataRequired()]
     )
 
-    # ---------- Evaluator Information ----------
+    # ---------- Evaluator Information (Optional) ----------
     evaluator_name = StringField(
         'Evaluator Name',
-        validators=[DataRequired(message='Evaluator name is required'),
-                    Length(max=255)]
+        validators=[Optional(), Length(max=255)]
     )
     evaluator_email = StringField(
         'Evaluator Email',
-        validators=[DataRequired(message='Evaluator email is required'),
-                    Email(message='Please enter a valid email address')]
+        validators=[Optional(), Email(message='Please enter a valid email address')]
     )
     evaluator_contact = StringField(
         'Evaluator Contact (Phone)',
