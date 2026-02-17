@@ -253,14 +253,76 @@ a:hover { color: var(--purple-hover); }
 .bg-dark-purple { background: var(--gradient-dark); }
 .section-title { font-weight: 700; }
 
-/* ---- Skill Cloud Container (hero) ---- */
+/* ---- Word Cloud (Hero) ---- */
+.word-cloud {
+    position: relative;
+    width: 100%;
+    height: 350px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 12px;
+    padding: 20px;
+}
+
+.word-cloud-word {
+    /* Size varies based on weight (1-5 scale) */
+    --size-multiplier: calc(0.7 + (var(--weight, 1) * 0.35));
+    font-size: calc(var(--size-multiplier) * 1rem);
+    font-weight: calc(400 + (var(--weight, 1) * 100));
+    
+    /* Color intensity varies with weight */
+    color: rgba(255, 255, 255, calc(0.35 + (var(--weight, 1) * 0.13)));
+    
+    /* Subtle animation */
+    transition: transform 0.3s ease, color 0.3s ease;
+    cursor: default;
+    white-space: nowrap;
+    line-height: 1.6;
+    
+    /* Slight random-like positioning via nth-child */
+    display: inline-block;
+}
+
+/* Apply rotations to create scattered word cloud effect */
+.word-cloud-word:nth-child(3n+1) { transform: rotate(-2deg); }
+.word-cloud-word:nth-child(5n+2) { transform: rotate(3deg); }
+.word-cloud-word:nth-child(7n) { transform: rotate(-4deg); }
+.word-cloud-word:nth-child(4n+3) { font-style: italic; }
+
+/* Hover effect */
+.word-cloud-word:hover {
+    color: #C580FF;
+    transform: scale(1.1);
+}
+
+/* Specific styling overrides for visual variety */
+.word-cloud-word:nth-child(1),
+.word-cloud-word:nth-child(5),
+.word-cloud-word:nth-child(11) {
+    font-weight: 800;
+    color: rgba(255,255,255,0.95);
+}
+
+.word-cloud-word:nth-child(2),
+.word-cloud-word:nth-child(6),
+.word-cloud-word:nth-child(9) {
+    font-weight: 600;
+    color: rgba(255,255,255,0.75);
+}
+
+.word-cloud-word:nth-child(8),
+.word-cloud-word:nth-child(14),
+.word-cloud-word:nth-child(16) {
+    font-weight: 400;
+    color: rgba(255,255,255,0.45);
+    font-size: 0.85rem;
+}
+
+/* Legacy skill-cloud-container for backwards compat */
 .skill-cloud-container {
     display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 1rem;
-}
-.skill-cloud-container .skill-cloud-tag {
-    background: rgba(161, 0, 255, 0.15); color: #E0C8FF;
-    padding: 6px 16px; border-radius: 50px;
-    font-weight: 600; font-size: 0.9rem;
 }
 
 /* ---- Hero extras ---- */

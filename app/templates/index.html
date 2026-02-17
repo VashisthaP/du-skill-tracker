@@ -59,25 +59,35 @@
                 </div>
             </div>
             <div class="col-lg-5 d-none d-lg-block">
-                <!-- Skill Cloud Visualization -->
-                <div class="skill-cloud-container" id="heroSkillCloud">
+                <!-- Word Cloud Visualization -->
+                <div class="word-cloud" id="heroSkillCloud">
                     {% for skill in trending_skills %}
-                    <span class="skill-cloud-tag size-{{ (skill.count * 3) | int if skill.count < 5 else 15 }}"
-                          style="--delay: {{ loop.index * 0.1 }}s">
+                    <span class="word-cloud-word" 
+                          data-weight="{{ skill.count }}"
+                          style="--weight: {{ skill.count }}; --index: {{ loop.index }};">
                         {{ skill.name }}
                     </span>
                     {% endfor %}
                     {% if not trending_skills %}
-                    <span class="skill-cloud-tag size-12">Python</span>
-                    <span class="skill-cloud-tag size-10">Azure</span>
-                    <span class="skill-cloud-tag size-8">React</span>
-                    <span class="skill-cloud-tag size-11">Java</span>
-                    <span class="skill-cloud-tag size-9">Gen AI</span>
-                    <span class="skill-cloud-tag size-7">Kubernetes</span>
-                    <span class="skill-cloud-tag size-10">.NET</span>
-                    <span class="skill-cloud-tag size-6">SQL</span>
-                    <span class="skill-cloud-tag size-9">Power BI</span>
-                    <span class="skill-cloud-tag size-8">DevOps</span>
+                    <!-- Fallback demo words -->
+                    <span class="word-cloud-word" style="--weight: 5; --index: 1;">Python</span>
+                    <span class="word-cloud-word" style="--weight: 4; --index: 2;">Azure</span>
+                    <span class="word-cloud-word" style="--weight: 3; --index: 3;">React</span>
+                    <span class="word-cloud-word" style="--weight: 4; --index: 4;">Java</span>
+                    <span class="word-cloud-word" style="--weight: 5; --index: 5;">Gen AI</span>
+                    <span class="word-cloud-word" style="--weight: 2; --index: 6;">Kubernetes</span>
+                    <span class="word-cloud-word" style="--weight: 3; --index: 7;">.NET</span>
+                    <span class="word-cloud-word" style="--weight: 2; --index: 8;">SQL</span>
+                    <span class="word-cloud-word" style="--weight: 3; --index: 9;">Power BI</span>
+                    <span class="word-cloud-word" style="--weight: 2; --index: 10;">DevOps</span>
+                    <span class="word-cloud-word" style="--weight: 4; --index: 11;">Agentic AI</span>
+                    <span class="word-cloud-word" style="--weight: 3; --index: 12;">Angular</span>
+                    <span class="word-cloud-word" style="--weight: 2; --index: 13;">TypeScript</span>
+                    <span class="word-cloud-word" style="--weight: 1; --index: 14;">Docker</span>
+                    <span class="word-cloud-word" style="--weight: 2; --index: 15;">AWS</span>
+                    <span class="word-cloud-word" style="--weight: 1; --index: 16;">Node.js</span>
+                    <span class="word-cloud-word" style="--weight: 3; --index: 17;">Data Science</span>
+                    <span class="word-cloud-word" style="--weight: 1; --index: 18;">Terraform</span>
                     {% endif %}
                 </div>
             </div>
