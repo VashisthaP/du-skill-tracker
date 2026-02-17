@@ -374,3 +374,74 @@ a:hover { color: var(--purple-hover); }
     .stat-number { font-size: 1.5rem; }
     .min-vh-75 { min-height: auto; padding: 2rem 0; }
 }
+
+/* ---- Word Cloud Dashboard (Light Background) ---- */
+.word-cloud-dashboard {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 10px;
+    padding: 10px;
+    min-height: 180px;
+}
+
+.word-cloud-dashboard-item {
+    /* Size varies based on weight (1-5 scale) */
+    --size-multiplier: calc(0.8 + (var(--weight, 1) * 0.25));
+    font-size: calc(var(--size-multiplier) * 1rem);
+    font-weight: calc(400 + (var(--weight, 1) * 80));
+    
+    /* Color intensity varies with weight - purple shades for light bg */
+    color: hsl(276, calc(50% + (var(--weight, 1) * 10%)), calc(50% - (var(--weight, 1) * 5%)));
+    
+    text-decoration: none;
+    transition: transform 0.3s ease, color 0.3s ease;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1.8;
+    display: inline-block;
+}
+
+/* Apply rotations to create scattered word cloud effect */
+.word-cloud-dashboard-item:nth-child(3n+1) { transform: rotate(-3deg); }
+.word-cloud-dashboard-item:nth-child(5n+2) { transform: rotate(4deg); }
+.word-cloud-dashboard-item:nth-child(7n) { transform: rotate(-5deg); }
+.word-cloud-dashboard-item:nth-child(4n+3) { font-style: italic; }
+
+/* Hover effect */
+.word-cloud-dashboard-item:hover {
+    color: var(--purple);
+    transform: scale(1.15);
+    text-decoration: none;
+}
+
+/* Specific styling overrides for visual variety */
+.word-cloud-dashboard-item:nth-child(1),
+.word-cloud-dashboard-item:nth-child(5) {
+    font-weight: 800;
+    font-size: 1.6rem;
+    color: #6B00B3;
+}
+
+.word-cloud-dashboard-item:nth-child(2),
+.word-cloud-dashboard-item:nth-child(6) {
+    font-weight: 600;
+    font-size: 1.3rem;
+    color: #8B2DC9;
+}
+
+.word-cloud-dashboard-item:nth-child(3),
+.word-cloud-dashboard-item:nth-child(7) {
+    font-weight: 500;
+    font-size: 1.1rem;
+    color: #9B4DD9;
+}
+
+.word-cloud-dashboard-item:nth-child(4),
+.word-cloud-dashboard-item:nth-child(8),
+.word-cloud-dashboard-item:nth-child(10) {
+    font-weight: 400;
+    font-size: 0.95rem;
+    color: #AB6DE9;
+}
