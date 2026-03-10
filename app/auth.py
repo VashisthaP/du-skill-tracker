@@ -1,7 +1,7 @@
 """
 SkillHive - Authentication Module
 ===================================
-OTP-based authentication restricted to @accenture.com email addresses.
+OTP-based authentication restricted to email addresses.
 Only users approved by the admin () can log in.
 
 Flow:
