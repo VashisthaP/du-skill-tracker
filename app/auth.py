@@ -115,7 +115,7 @@ def login():
 
         if not user.is_approved:
             flash('Your account is pending admin approval. Please contact '
-                  'pratyush.vashistha@accenture.com for access.', 'warning')
+                  'Pratyush Vashistha for access.', 'warning')
             return render_template('auth/login.html')
 
         # Generate OTP and send email
