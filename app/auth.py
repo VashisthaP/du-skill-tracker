@@ -25,7 +25,7 @@ from app.models import User
 auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
 # Super admin email - auto-approved, always admin
-SUPER_ADMIN_EMAIL = 'pratyush.vashistha@accenture.com'
+SUPER_ADMIN_EMAIL = ''
 
 
 # =====================================================
