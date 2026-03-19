@@ -135,8 +135,10 @@ a:hover { color: var(--purple-hover); }
 
 /* ---- Demand Cards ---- */
 .demand-card {
-    border-radius: 12px; transition: box-shadow .2s, transform .15s;
+    position: relative; /* Required for stretched-link */
+    border-radius: 12px; transition: box-shadow .2s ease-out, transform .15s ease-out;
     overflow: hidden;
+    will-change: transform;
 }
 .demand-card:hover { box-shadow: 0 8px 30px rgba(161,0,255,.12); transform: translateY(-3px); }
 .card-status-bar { height: 4px; }
@@ -362,9 +364,13 @@ a:hover { color: var(--purple-hover); }
 .demand-card-skills { margin-bottom: .6rem; }
 .demand-card-footer { display: flex; gap: 1rem; font-size: .8rem; }
 .demand-card {
+    position: relative; /* Required for stretched-link to work correctly */
     background: #fff; border-radius: 12px; padding: 1.2rem;
     box-shadow: 0 2px 12px rgba(0,0,0,.06); height: 100%;
-    transition: transform .15s, box-shadow .15s;
+    transition: transform .15s ease-out, box-shadow .15s ease-out;
+    will-change: transform; /* Prevents Edge flickering/vibration */
+    display: flex;
+    flex-direction: column;
 }
 .demand-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(161,0,255,.12); }
 
