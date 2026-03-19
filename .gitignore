@@ -83,3 +83,4 @@ coverage.xml
 # ---------- Distribution ----------
 *.tar.gz
 *.whl
+pvenv/
