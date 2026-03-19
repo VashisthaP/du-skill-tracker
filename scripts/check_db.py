@@ -1,9 +1,11 @@
 """Check production database schema."""
+import os
 import psycopg2
 
-conn = psycopg2.connect(
-    'postgresql://skillhiveadmin:Postgres1%402026@skillhive-accenture-pg.postgres.database.azure.com:5432/skillhive?sslmode=require'
-)
+# Get DB URL from environment or use placeholder
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@your-server.postgres.database.azure.com:5432/skillhive?sslmode=require')
+
+conn = psycopg2.connect(DB_URL)
 cur = conn.cursor()
 
 cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'demands' ORDER BY ordinal_position")

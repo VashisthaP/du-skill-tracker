@@ -14,10 +14,10 @@ from app.models import Demand, Application
 
 
 # =====================================================
-# ACCENTURE-THEMED EXCEL STYLES
+# THEMED EXCEL STYLES
 # =====================================================
 
-# Header style: Accenture purple background with white text
+# Header style: Purple background with white text
 HEADER_FONT = Font(name='Calibri', bold=True, color='FFFFFF', size=11)
 HEADER_FILL = PatternFill(start_color='A100FF', end_color='A100FF', fill_type='solid')
 HEADER_ALIGNMENT = Alignment(horizontal='center', vertical='center', wrap_text=True)

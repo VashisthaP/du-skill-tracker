@@ -21,17 +21,4 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
 -- Approve all existing active users so they aren't locked out
 UPDATE users SET is_approved = TRUE WHERE is_active = TRUE;
 
--- Ensure super admin exists and is fully active
-INSERT INTO users (email, display_name, role, is_active, is_approved, created_at)
-VALUES (
-    'pratyush.vashistha@accenture.com',
-    'Pratyush Vashistha',
-    'admin',
-    TRUE,
-    TRUE,
-    NOW() AT TIME ZONE 'utc'
-)
-ON CONFLICT (email) DO UPDATE SET
-    role = 'admin',
-    is_active = TRUE,
-    is_approved = TRUE;
+-- Note: Super admin is now created at app startup via SUPER_ADMIN_EMAIL env var

@@ -28,11 +28,11 @@ def seed():
 
         # ---- Users ----
         users_data = [
-            {'email': 'admin@accenture.com',     'display_name': 'Admin User',      'role': 'admin',     'enterprise_id': 'admin.user'},
-            {'email': 'pmo@accenture.com',        'display_name': 'PMO Manager',     'role': 'pmo',       'enterprise_id': 'pmo.manager'},
-            {'email': 'evaluator@accenture.com',  'display_name': 'Tech Evaluator',  'role': 'evaluator', 'enterprise_id': 'tech.eval'},
-            {'email': 'resource1@accenture.com',  'display_name': 'Priya Sharma',    'role': 'resource',  'enterprise_id': 'priya.sharma'},
-            {'email': 'resource2@accenture.com',  'display_name': 'Rahul Kumar',     'role': 'resource',  'enterprise_id': 'rahul.kumar'},
+            {'email': 'admin@example.com',     'display_name': 'Admin User',      'role': 'admin',     'enterprise_id': 'admin.user'},
+            {'email': 'pmo@example.com',        'display_name': 'PMO Manager',     'role': 'pmo',       'enterprise_id': 'pmo.manager'},
+            {'email': 'evaluator@example.com',  'display_name': 'Tech Evaluator',  'role': 'evaluator', 'enterprise_id': 'tech.eval'},
+            {'email': 'resource1@example.com',  'display_name': 'Priya Sharma',    'role': 'resource',  'enterprise_id': 'priya.sharma'},
+            {'email': 'resource2@example.com',  'display_name': 'Rahul Kumar',     'role': 'resource',  'enterprise_id': 'rahul.kumar'},
         ]
         users = {}
         for u in users_data:
@@ -72,7 +72,7 @@ def seed():
                     'end_date': date.today() + timedelta(days=180),
                     'priority': 'critical',
                     'evaluator_name': 'Tech Evaluator',
-                    'evaluator_email': 'evaluator@accenture.com',
+                    'evaluator_email': 'evaluator@example.com',
                     'evaluator_contact': '+91 98765 43210',
                     'description': 'Need experienced cloud engineers for large-scale migration from on-prem to Azure. Must have strong Azure, Terraform, and containerization skills.',
                     'skills': ['Azure', 'Terraform', 'Docker', 'Kubernetes', 'Python'],
@@ -87,7 +87,7 @@ def seed():
                     'end_date': date.today() + timedelta(days=120),
                     'priority': 'high',
                     'evaluator_name': 'Tech Evaluator',
-                    'evaluator_email': 'evaluator@accenture.com',
+                    'evaluator_email': 'evaluator@example.com',
                     'description': 'Building an enterprise GenAI chatbot using LangChain and Azure OpenAI. Looking for Python developers with AI/ML experience.',
                     'skills': ['Python', 'GenAI', 'LangChain', 'Azure', 'React'],
                 },
@@ -100,7 +100,7 @@ def seed():
                     'start_date': date.today() + timedelta(days=30),
                     'priority': 'medium',
                     'evaluator_name': 'Tech Evaluator',
-                    'evaluator_email': 'evaluator@accenture.com',
+                    'evaluator_email': 'evaluator@example.com',
                     'description': 'S/4HANA upgrade project. Need consultants with SAP ABAP and Fiori experience.',
                     'skills': ['SAP', 'ABAP', 'SAP Fiori', 'SQL Server'],
                 },
@@ -114,7 +114,7 @@ def seed():
                     'end_date': date.today() + timedelta(days=90),
                     'priority': 'high',
                     'evaluator_name': 'Tech Evaluator',
-                    'evaluator_email': 'evaluator@accenture.com',
+                    'evaluator_email': 'evaluator@example.com',
                     'description': 'Cross-platform mobile app development. Looking for developers with React Native and TypeScript skills.',
                     'skills': ['React', 'TypeScript', 'Node.js', 'REST APIs'],
                 },

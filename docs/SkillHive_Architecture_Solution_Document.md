@@ -44,7 +44,7 @@ SkillHive provides:
 - An **Evaluation Workflow** with comprehensive status tracking (7 statuses: Pending → Under Evaluation → Accepted / Rejected / Skill Mismatch / Unavailable / Already Locked).
 - A **Trending Skill Cloud** for real-time skill demand analytics.
 - **Excel Import/Export** capabilities for data management.
-- **OTP-based Authentication** restricted to @accenture.com emails with admin approval workflow.
+- **OTP-based Authentication** restricted to @example.com emails with admin approval workflow.
 - **Super Admin** role for comprehensive user management (add, approve, revoke, delete).
 - **Admin Panel** for user management and system-wide statistics.
 - **Business Hours Access Control** to reduce Azure costs outside working hours.
@@ -138,7 +138,7 @@ SkillHive provides:
 ```
    User                    System                   Admin
      │                        │                        │
-     │ Enter @accenture.com   │                        │
+     │ Enter @example.com   │                        │
      │ email                  │                        │
      ├───────────────────────►│                        │
      │                        │                        │
@@ -174,7 +174,7 @@ SkillHive provides:
 | 4 | RRD Pagination             | 12 RRDs per page with paginated navigation                                                            |
 | 5 | Resource Bulk Upload       | PMO uploads Excel with resource data (Personnel No, Name, Skills, Location, etc.)                    |
 | 6 | Resource Evaluation        | Evaluators review resources with 7 distinct status outcomes + remarks                                 |
-| 7 | OTP Authentication         | Passwordless login via 6-digit OTP sent to @accenture.com email                                       |
+| 7 | OTP Authentication         | Passwordless login via 6-digit OTP sent to @example.com email                                       |
 | 8 | User Approval Workflow     | New users require admin approval before they can log in                                               |
 | 9 | Super Admin Management     | Designated super admin can add/delete users and assign admin roles                                    |
 | 10| Excel Import/Export        | Formatted .xlsx import for resources, export for RRDs and resources with branded styling              |
@@ -556,8 +556,8 @@ The system seeds 30+ default skills across categories:
 
 | Layer              | Mechanism                                                |
 |--------------------|----------------------------------------------------------|
-| Authentication     | OTP-based (6-digit code sent to @accenture.com email, 10-min expiry) |
-| Domain Restriction | Only @accenture.com email addresses allowed              |
+| Authentication     | OTP-based (6-digit code sent to @example.com email, 10-min expiry) |
+| Domain Restriction | Only @example.com email addresses allowed              |
 | User Approval      | New users require admin approval before login            |
 | Session Management | Flask-Login with server-side sessions (1-hour timeout)   |
 | Remember Me        | 24-hour cookie duration with HttpOnly + SameSite=Lax     |
@@ -675,12 +675,12 @@ Developer Workstation
 | Resource                | Name Pattern                        | Example                         |
 |-------------------------|-------------------------------------|---------------------------------|
 | Resource Group          | `rg-{appname}`                      | `rg-skillhive`                  |
-| App Service Plan        | `{appname}-plan`                    | `skillhive-accenture-plan`      |
-| App Service             | `{appname}`                         | `skillhive-accenture`           |
-| PostgreSQL Server       | `{appname}-pg`                      | `skillhive-accenture-pg`        |
-| Storage Account         | `{appname}store`                    | `skillhiveaccenturestore`       |
-| Application Insights    | `{appname}-insights`                | `skillhive-accenture-insights`  |
-| Log Analytics Workspace | `{appname}-logs`                    | `skillhive-accenture-logs`      |
+| App Service Plan        | `{appname}-plan`                    | `skillhive-yourname-plan`      |
+| App Service             | `{appname}`                         | `skillhive-yourname`           |
+| PostgreSQL Server       | `{appname}-pg`                      | `skillhive-yourname-pg`        |
+| Storage Account         | `{appname}store`                    | `skillhiveyournamestore`        |
+| Application Insights    | `{appname}-insights`                | `skillhive-yourname-insights`  |
+| Log Analytics Workspace | `{appname}-logs`                    | `skillhive-yourname-logs`      |
 
 ---
 

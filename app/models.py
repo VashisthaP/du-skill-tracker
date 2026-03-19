@@ -45,11 +45,11 @@ class User(UserMixin, db.Model):
     """
     User model for SkillHive portal.
     Roles:
-        - admin: Full system access, user management (super admin: pratyush.vashistha@accenture.com)
+        - admin: Full system access, user management
         - pmo: Create/manage demands, manage applications
         - evaluator: Evaluate applications, update status
         - resource: View demands (default)
-    Authentication: OTP-based, restricted to @accenture.com emails approved by admin.
+    Authentication: OTP-based with admin approval workflow.
     """
     __tablename__ = 'users'
 
@@ -60,7 +60,7 @@ class User(UserMixin, db.Model):
     display_name = db.Column(db.String(255), nullable=False)
     # Password hash for local authentication (legacy, kept for backward compat)
     password_hash = db.Column(db.String(256), nullable=True)
-    # Accenture Enterprise ID (e.g., "pratyush.vashistha")
+    # Enterprise ID (e.g., "john.doe")
     enterprise_id = db.Column(db.String(50), nullable=True)
     # Role determines access level throughout the application
     role = db.Column(db.String(20), nullable=False, default='resource')
@@ -75,8 +75,11 @@ class User(UserMixin, db.Model):
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                            onupdate=lambda: datetime.now(timezone.utc))
 
-    # Super admin email - only this user has full admin control
-    SUPER_ADMIN_EMAIL = 'pratyush.vashistha@accenture.com'
+    # Super admin email - configured via environment variable
+    @staticmethod
+    def get_super_admin_email():
+        import os
+        return os.environ.get('SUPER_ADMIN_EMAIL', '')
 
     # Relationships
     demands_created = db.relationship('Demand', backref='creator', lazy='dynamic',
@@ -120,8 +123,9 @@ class User(UserMixin, db.Model):
 
     @property
     def is_super_admin(self):
-        """Check if user is the super admin (Pratyush Vashistha)."""
-        return self.email.lower() == self.SUPER_ADMIN_EMAIL.lower()
+        """Check if user is the super admin (configured via SUPER_ADMIN_EMAIL env var)."""
+        super_admin_email = self.get_super_admin_email()
+        return super_admin_email and self.email.lower() == super_admin_email.lower()
 
     @property
     def is_admin(self):
@@ -204,7 +208,7 @@ class Demand(db.Model):
     manager_name = db.Column(db.String(255), nullable=True)  # Manager Name
 
     # ---------- Requirement Details ----------
-    # Career Level: Accenture career levels 8 (Sr. Manager) to 12 (Associate)
+    # Career Level: Levels 8 (Sr. Manager) to 12 (Associate)
     career_level = db.Column(db.String(10), nullable=False)
     num_positions = db.Column(db.Integer, nullable=False, default=1)
     start_date = db.Column(db.Date, nullable=True)

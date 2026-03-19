@@ -1,8 +1,10 @@
 """Run pending migrations against production PostgreSQL."""
+import os
 import psycopg2
 import sys
 
-DB_URL = "postgresql://skillhiveadmin:Postgres1%402026@skillhive-accenture-pg.postgres.database.azure.com:5432/skillhive?sslmode=require"
+# Get DB URL from environment or use placeholder
+DB_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@your-server.postgres.database.azure.com:5432/skillhive?sslmode=require')
 
 MIGRATION_002 = """
 -- Step 1: Add the new rrd column
@@ -61,20 +63,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
 -- Approve all existing active users
 UPDATE users SET is_approved = TRUE WHERE is_active = TRUE;
 
--- Ensure super admin
-INSERT INTO users (email, display_name, role, is_active, is_approved, created_at)
-VALUES (
-    'pratyush.vashistha@accenture.com',
-    'Pratyush Vashistha',
-    'admin',
-    TRUE,
-    TRUE,
-    NOW() AT TIME ZONE 'utc'
-)
-ON CONFLICT (email) DO UPDATE SET
-    role = 'admin',
-    is_active = TRUE,
-    is_approved = TRUE;
+-- Note: Super admin is now created at app startup via SUPER_ADMIN_EMAIL env var
 """
 
 

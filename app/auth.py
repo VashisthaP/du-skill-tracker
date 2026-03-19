@@ -1,11 +1,11 @@
 """
 SkillHive - Authentication Module
 ===================================
-OTP-based authentication restricted to email addresses.
-Only users approved by the admin () can log in.
+OTP-based authentication with configurable email domain.
+Only users approved by the admin can log in.
 
 Flow:
-  1. User enters @accenture.com email on login page
+  1. User enters their email on login page
   2. System checks if user exists and is approved
   3. 6-digit OTP sent to the email (valid for 10 minutes)
   4. User enters OTP to complete login
@@ -84,8 +84,8 @@ def _send_otp_email(user, otp_code):
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """
-    Step 1: User enters @accenture.com email.
-    Validates domain, checks approval, generates and sends OTP.
+    Step 1: User enters their email.
+    Checks if user exists and is approved, generates and sends OTP.
     """
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
@@ -95,11 +95,6 @@ def login():
 
         if not email:
             flash('Please enter your email address.', 'warning')
-            return render_template('auth/login.html')
-
-        # Validate @accenture.com domain
-        if not email.endswith('@accenture.com'):
-            flash('Only @accenture.com email addresses are allowed.', 'danger')
             return render_template('auth/login.html')
 
         user = User.query.filter_by(email=email).first()
@@ -115,7 +110,7 @@ def login():
 
         if not user.is_approved:
             flash('Your account is pending admin approval. Please contact '
-                  'Pratyush Vashistha for access.', 'warning')
+                  'your administrator for access.', 'warning')
             return render_template('auth/login.html')
 
         # Generate OTP and send email

@@ -195,7 +195,7 @@ The **Burstable** tier (B-series) provides:
 **Answer:**  
 The connection string format:
 ```
-postgresql://skillhiveadmin:Postgres1%402026@skillhive-accenture-pg.postgres.database.azure.com:5432/skillhive?sslmode=require
+postgresql://skillhiveadmin:YourPassword@skillhive-yourname-pg.postgres.database.azure.com:5432/skillhive?sslmode=require
 ```
 
 Security layers:
@@ -833,11 +833,11 @@ Step-by-step debugging:
 
 1. **Check App Service Logs:**
    ```bash
-   az webapp log tail --name skillhive-accenture --resource-group rg-skillhive
+   az webapp log tail --name skillhive-yourname --resource-group rg-skillhive
    ```
 
 2. **Check Startup Logs in Kudu:**
-   - Go to `https://skillhive-accenture.scm.azurewebsites.net`
+   - Go to `https://skillhive-yourname.scm.azurewebsites.net`
    - Navigate to Log stream → Docker logs
 
 3. **Common Exit Codes:**
@@ -847,7 +847,7 @@ Step-by-step debugging:
 
 4. **SSH into the container:**
    ```bash
-   az webapp ssh --name skillhive-accenture --resource-group rg-skillhive
+   az webapp ssh --name skillhive-yourname --resource-group rg-skillhive
    cd /home/site/wwwroot
    source antenv/bin/activate
    python -c "from app import create_app; app = create_app('production')"
@@ -868,7 +868,7 @@ Step-by-step debugging:
 
 1. **Special characters in password:** If password contains `@`, `#`, `/`, etc., they must be **URL-encoded** in the connection string.
    - `@` → `%40`, `#` → `%23`, `/` → `%2F`
-   - Example: `Postgres1@2026` → `Postgres1%402026`
+   - Example: `Postgres1@2026` → `YourPassword`
 
 2. **Firewall rules:** Ensure "Allow Azure Services" is enabled or the App Service outbound IPs are whitelisted.
 
@@ -880,7 +880,7 @@ Step-by-step debugging:
 
 6. **Test from SSH:**
    ```bash
-   psql "postgresql://skillhiveadmin:Postgres1%402026@skillhive-accenture-pg.postgres.database.azure.com:5432/skillhive?sslmode=require"
+   psql "postgresql://skillhiveadmin:YourPassword@skillhive-yourname-pg.postgres.database.azure.com:5432/skillhive?sslmode=require"
    ```
 
 ---
@@ -1719,8 +1719,8 @@ SkillHive uses a **numbered SQL migration** approach:
 
 > **Scenario Context:** The client has raised a Change Request (CR) for SkillHive v1.3 with the following requirements:
 > 1. Remove the "Manage Applications" tab — resources will no longer self-apply for open RRDs.
-> 2. Replace password-based login with OTP-based authentication, restricted to `@accenture.com` emails only.
-> 3. Only admin-approved users can log in. A designated Super Admin (`pratyush.vashistha@accenture.com`) controls all user roles, approvals, and deletions.
+> 2. Replace password-based login with OTP-based authentication, restricted to `@example.com` emails only.
+> 3. Only admin-approved users can log in. A designated Super Admin (`super.admin@example.com`) controls all user roles, approvals, and deletions.
 > 4. Add session security hardening (timeouts, cookie flags).
 > 5. Update the test suite to cover the new authentication flow.
 
@@ -1751,7 +1751,7 @@ The OTP flow is a two-step passwordless authentication:
 
 **Step 1 — Email Submission (`/auth/login` POST):**
 ```
-User enters email → Validate @accenture.com domain → Check user exists →
+User enters email → Validate @example.com domain → Check user exists →
 Check is_active → Check is_approved → Generate 6-digit OTP → Store in DB →
 Send via Flask-Mail → Store email in session → Redirect to /auth/verify-otp
 ```
@@ -1775,7 +1775,7 @@ login_user() → Redirect to dashboard
 **Security features:**
 - OTP is single-use (cleared after verification).
 - 10-minute expiry prevents replay attacks.
-- Domain restriction (`@accenture.com`) at the route level.
+- Domain restriction (`@example.com`) at the route level.
 - Admin approval gate (`is_approved` flag) before OTP is even generated.
 
 ---
@@ -1800,7 +1800,7 @@ Using `datetime.utcnow()` (which returns a naive datetime in UTC) ensures consis
 
 **Answer:**  
 
-The Super Admin (`pratyush.vashistha@accenture.com`) is protected at **four levels**:
+The Super Admin (`super.admin@example.com`) is protected at **four levels**:
 
 1. **Model Level:** `User.SUPER_ADMIN_EMAIL` constant + `is_super_admin` property:
    ```python
@@ -1845,7 +1845,7 @@ This ensures all currently active users are not locked out when the approval gat
 
 **Super admin seeding via UPSERT:**
 ```sql
-INSERT INTO users (...) VALUES ('pratyush.vashistha@accenture.com', ...)
+INSERT INTO users (...) VALUES ('super.admin@example.com', ...)
 ON CONFLICT (email) DO UPDATE SET role = 'admin', is_active = TRUE, is_approved = TRUE;
 ```
 
@@ -1879,7 +1879,7 @@ Four settings were added to `config.py`:
 
 **New User Journey:**
 
-1. **User visits `/auth/login`** — enters their `@accenture.com` email.
+1. **User visits `/auth/login`** — enters their `@example.com` email.
 2. **Not registered:** Flash message — "Your account is not registered. Please contact the administrator."
 3. **Admin creates user:** Via `/admin/users` → "Add User" modal (enters display name, email, role). User is created with `is_approved = True` (admin-added users are pre-approved).
 4. **User retries login:** Email found, `is_active = True`, `is_approved = True` → OTP generated and sent.
@@ -1899,10 +1899,10 @@ Four settings were added to `config.py`:
 **Answer:**  
 
 **Modified tests:**
-- `test_login_page` — Updated assertion to check for `'accenture.com'` instead of password-related content.
+- `test_login_page` — Verifies login page loads correctly.
 - `test_login_invalid_creds` — Removed (password no longer used). Replaced with:
-  - `test_login_non_accenture_email` — Verifies domain restriction.
-  - `test_login_unregistered_accenture_email` — Verifies unknown user handling.
+  - `test_login_invalid_email` — Verifies invalid email handling.
+  - `test_login_unregistered_email` — Verifies unknown user handling.
   - `test_login_unapproved_user` — Verifies approval gate.
   - `test_login_otp_flow` — Full end-to-end: create approved user → POST login → extract OTP from DB → POST verify-otp → assert logged in.
 
@@ -1945,7 +1945,7 @@ OTP is already single-factor (something you have — email access). True MFA wou
 - The email appears in multiple files (`models.py`, `auth.py`, `admin.py`, `__init__.py`).
 
 **Better approaches (increasingly robust):**
-1. **Environment variable:** `SUPER_ADMIN_EMAIL = os.environ.get('SUPER_ADMIN_EMAIL', 'pratyush.vashistha@accenture.com')` — configurable per deployment via Azure App Settings.
+1. **Environment variable:** `SUPER_ADMIN_EMAIL = os.environ.get('SUPER_ADMIN_EMAIL', 'super.admin@example.com')` — configurable per deployment via Azure App Settings.
 2. **Database flag:** Add `is_super_admin` boolean column instead of email comparison. Multiple super admins become possible.
 3. **Role hierarchy:** Introduce `superadmin` as a distinct role above `admin`, managed via DB rather than code. The `_ensure_super_admin()` startup function could read from env var.
 

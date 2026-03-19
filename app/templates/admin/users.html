@@ -64,7 +64,7 @@
                                     <div class="user-avatar me-2" style="width:32px;height:32px;font-size:0.8rem;">{{ user.display_name[0]|upper }}</div>
                                     <div>
                                         <span class="fw-semibold">{{ user.display_name }}</span>
-                                        {% if user.email.lower() == 'pratyush.vashistha@accenture.com' %}
+                                        {% if user.is_super_admin %}
                                         <span class="badge bg-danger ms-1" title="Super Admin">SA</span>
                                         {% endif %}
                                     </div>
@@ -108,7 +108,7 @@
                                         </button>
                                     </form>
                                     {% endif %}
-                                    {% if user.is_active and user.is_approved and user.email.lower() != 'pratyush.vashistha@accenture.com' %}
+                                    {% if user.is_active and user.is_approved and not user.is_super_admin %}
                                     <form method="POST" action="{{ url_for('admin.revoke_user', user_id=user.id) }}" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-warning" title="Deactivate"
@@ -124,7 +124,7 @@
                                         </button>
                                     </form>
                                     {% endif %}
-                                    {% if current_user.email.lower() == 'pratyush.vashistha@accenture.com' and user.email.lower() != 'pratyush.vashistha@accenture.com' %}
+                                    {% if current_user.is_super_admin and not user.is_super_admin %}
                                     <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" class="d-inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-danger" title="Delete permanently"
@@ -177,11 +177,8 @@
                         <input type="text" name="display_name" class="form-control" placeholder="e.g. John Doe" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Accenture Email</label>
-                        <input type="email" name="email" class="form-control" placeholder="john.doe@accenture.com" required
-                               pattern="[a-zA-Z0-9._%+-]+@accenture\.com$"
-                               title="Only @accenture.com emails allowed">
-                        <div class="form-text">Only @accenture.com email addresses are allowed.</div>
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="john.doe@example.com" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Role</label>
@@ -189,7 +186,7 @@
                             <option value="resource">Resource</option>
                             <option value="evaluator">Evaluator</option>
                             <option value="pmo">PMO</option>
-                            {% if current_user.email.lower() == 'pratyush.vashistha@accenture.com' %}
+                            {% if current_user.is_super_admin %}
                             <option value="admin">Admin</option>
                             {% endif %}
                         </select>

@@ -21,11 +21,11 @@ with app.app_context():
     if User.query.count() == 0:
         default_pw = generate_password_hash('Welcome@2026')
         users = [
-            User(email='admin@accenture.com', display_name='Admin User', role='admin', enterprise_id='admin.user', password_hash=default_pw),
-            User(email='pmo@accenture.com', display_name='PMO Manager', role='pmo', enterprise_id='pmo.manager', password_hash=default_pw),
-            User(email='evaluator@accenture.com', display_name='Tech Evaluator', role='evaluator', enterprise_id='tech.eval', password_hash=default_pw),
-            User(email='resource1@accenture.com', display_name='Priya Sharma', role='resource', enterprise_id='priya.sharma', password_hash=default_pw),
-            User(email='resource2@accenture.com', display_name='Rahul Kumar', role='resource', enterprise_id='rahul.kumar', password_hash=default_pw),
+            User(email='admin@example.com', display_name='Admin User', role='admin', enterprise_id='admin.user', password_hash=default_pw),
+            User(email='pmo@example.com', display_name='PMO Manager', role='pmo', enterprise_id='pmo.manager', password_hash=default_pw),
+            User(email='evaluator@example.com', display_name='Tech Evaluator', role='evaluator', enterprise_id='tech.eval', password_hash=default_pw),
+            User(email='resource1@example.com', display_name='Priya Sharma', role='resource', enterprise_id='priya.sharma', password_hash=default_pw),
+            User(email='resource2@example.com', display_name='Rahul Kumar', role='resource', enterprise_id='rahul.kumar', password_hash=default_pw),
         ]
         db.session.add_all(users)
         db.session.commit()

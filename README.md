@@ -79,7 +79,7 @@ python app/app.py
 
 Open **http://localhost:5000** in your browser.
 
-Use Dev Login with any email (e.g., `admin@accenture.com`) to test different roles.
+Use Dev Login with any email (e.g., `admin@example.com`) to test different roles.
 
 ---
 
@@ -222,8 +222,8 @@ After making any code changes, use the following commands to deploy to Azure. Ru
 
 ```bash
 export RG_NAME="rg-skillhive"
-export APP_NAME="skillhive-accenture"
-export SUBSCRIPTION_ID="2f0676e3-d88a-4118-93c9-5c05c8da156f"
+export APP_NAME="skillhive-yourname"
+export SUBSCRIPTION_ID="your-subscription-id"
 az account set --subscription "$SUBSCRIPTION_ID"
 
 cd /tmp
@@ -246,7 +246,7 @@ az webapp deployment source config-zip \
 Once Block 1 finishes, SSH into the App Service to extract the Oryx build output:
 
 ```bash
-az webapp ssh --resource-group "rg-skillhive" --name "skillhive-accenture"
+az webapp ssh --resource-group "rg-skillhive" --name "skillhive-yourname"
 ```
 
 **Inside SSH, run (check which file exists and use the matching command):**
@@ -268,7 +268,7 @@ exit
 ### Block 3 — Restart the App
 
 ```bash
-az webapp restart --resource-group "rg-skillhive" --name "skillhive-accenture"
+az webapp restart --resource-group "rg-skillhive" --name "skillhive-yourname"
 ```
 
-The app will be live at **https://skillhive-accenture.azurewebsites.net** after restart.
+The app will be live at **https://skillhive-yourname.azurewebsites.net** after restart.

@@ -3,10 +3,11 @@ SkillHive - Admin Routes
 =========================
 Administrative panel for user management, system statistics,
 and portal configuration. Only accessible by admin users.
-Super admin: pratyush.vashistha@accenture.com — has full control
+Super admin (configured via SUPER_ADMIN_EMAIL env var) has full control
 over all users, roles, approvals, and can add/delete users.
 """
 
+import os
 from datetime import datetime, timezone
 from flask import (
     Blueprint, render_template, redirect, url_for, flash,
@@ -20,8 +21,9 @@ from app.utils.decorators import admin_required
 
 admin_bp = Blueprint('admin', __name__, template_folder='templates')
 
-# Super admin email constant
-SUPER_ADMIN_EMAIL = 'pratyush.vashistha@accenture.com'
+# Super admin email from environment
+def get_super_admin_email():
+    return os.environ.get('SUPER_ADMIN_EMAIL', '')
 
 
 # =====================================================
@@ -166,7 +168,7 @@ def users():
 def add_user():
     """
     Add a new user (admin only).
-    Only @accenture.com emails allowed. User is auto-approved when added by admin.
+    User is auto-approved when added by admin.
     """
     email = request.form.get('email', '').strip().lower()
     display_name = request.form.get('display_name', '').strip()
@@ -174,11 +176,6 @@ def add_user():
 
     if not email or not display_name:
         flash('Email and display name are required.', 'danger')
-        return redirect(url_for('admin.users'))
-
-    # Validate email domain
-    if not email.endswith('@accenture.com'):
-        flash('Only @accenture.com email addresses are allowed.', 'danger')
         return redirect(url_for('admin.users'))
 
     # Check for duplicates
@@ -193,7 +190,8 @@ def add_user():
         role = 'resource'
 
     # Only super admin can create other admins
-    if role == 'admin' and current_user.email.lower() != SUPER_ADMIN_EMAIL:
+    super_admin_email = get_super_admin_email()
+    if role == 'admin' and (not super_admin_email or current_user.email.lower() != super_admin_email.lower()):
         flash('Only the super admin can create admin users.', 'danger')
         return redirect(url_for('admin.users'))
 
@@ -236,12 +234,13 @@ def update_user_role(user_id):
         return redirect(url_for('admin.users'))
 
     # Protect super admin - cannot change their role
-    if user.email.lower() == SUPER_ADMIN_EMAIL and new_role != 'admin':
+    super_admin_email = get_super_admin_email()
+    if super_admin_email and user.email.lower() == super_admin_email.lower() and new_role != 'admin':
         flash('Cannot change the super admin\'s role.', 'danger')
         return redirect(url_for('admin.users'))
 
     # Only super admin can assign admin role
-    if new_role == 'admin' and current_user.email.lower() != SUPER_ADMIN_EMAIL:
+    if new_role == 'admin' and (not super_admin_email or current_user.email.lower() != super_admin_email.lower()):
         flash('Only the super admin can assign the admin role.', 'danger')
         return redirect(url_for('admin.users'))
 
@@ -301,7 +300,8 @@ def revoke_user(user_id):
     user = User.query.get_or_404(user_id)
 
     # Cannot deactivate super admin
-    if user.email.lower() == SUPER_ADMIN_EMAIL:
+    super_admin_email = get_super_admin_email()
+    if super_admin_email and user.email.lower() == super_admin_email.lower():
         flash('Cannot deactivate the super admin.', 'danger')
         return redirect(url_for('admin.users'))
 
@@ -346,7 +346,8 @@ def delete_user(user_id):
     Only super admin can delete users. Cannot delete self.
     """
     # Only super admin can delete users
-    if current_user.email.lower() != SUPER_ADMIN_EMAIL:
+    super_admin_email = get_super_admin_email()
+    if not super_admin_email or current_user.email.lower() != super_admin_email.lower():
         flash('Only the super admin can delete users.', 'danger')
         return redirect(url_for('admin.users'))
 
@@ -358,7 +359,7 @@ def delete_user(user_id):
         return redirect(url_for('admin.users'))
 
     # Cannot delete super admin
-    if user.email.lower() == SUPER_ADMIN_EMAIL:
+    if super_admin_email and user.email.lower() == super_admin_email.lower():
         flash('Cannot delete the super admin account.', 'danger')
         return redirect(url_for('admin.users'))
 

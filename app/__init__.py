@@ -309,19 +309,25 @@ def _seed_default_skills(app):
 
 def _ensure_super_admin(app):
     """
-    Ensure the super admin (pratyush.vashistha@accenture.com) exists
-    and has admin role + is approved. Creates the user on first run.
+    Ensure the super admin exists and has admin role + is approved.
+    Creates the user on first run. Email is configurable via SUPER_ADMIN_EMAIL env var.
     """
+    import os
     from app.models import User
 
-    SUPER_ADMIN_EMAIL = 'pratyush.vashistha@accenture.com'
+    SUPER_ADMIN_EMAIL = os.environ.get('SUPER_ADMIN_EMAIL', '')
+    if not SUPER_ADMIN_EMAIL:
+        app.logger.info("SUPER_ADMIN_EMAIL not configured, skipping super admin setup")
+        return
 
     super_admin = User.query.filter_by(email=SUPER_ADMIN_EMAIL).first()
     if not super_admin:
+        # Extract display name from email (before @)
+        name_part = SUPER_ADMIN_EMAIL.split('@')[0].replace('.', ' ').title()
         super_admin = User(
             email=SUPER_ADMIN_EMAIL,
-            display_name='Pratyush Vashistha',
-            enterprise_id='pratyush.vashistha',
+            display_name=name_part,
+            enterprise_id=SUPER_ADMIN_EMAIL.split('@')[0],
             role='admin',
             is_active=True,
             is_approved=True,

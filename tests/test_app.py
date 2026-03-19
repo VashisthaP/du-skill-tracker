@@ -57,7 +57,7 @@ class TestModels:
     def test_create_user(self, app):
         with app.app_context():
             user = User(
-                email='test@accenture.com',
+                email='test@example.com',
                 display_name='Test User',
                 role='resource'
             )
@@ -153,20 +153,19 @@ class TestRoutes:
         resp = client.get('/auth/login')
         assert resp.status_code == 200
         assert b'Sign In' in resp.data
-        assert b'accenture.com' in resp.data
 
-    def test_login_non_accenture_email(self, client):
+    def test_login_invalid_email(self, client):
         resp = client.post('/auth/login', data={'email': 'bad@gmail.com'})
         assert resp.status_code == 200
 
-    def test_login_unregistered_accenture_email(self, client):
-        resp = client.post('/auth/login', data={'email': 'nobody@accenture.com'}, follow_redirects=True)
+    def test_login_unregistered_email(self, client):
+        resp = client.post('/auth/login', data={'email': 'nobody@example.com'}, follow_redirects=True)
         assert resp.status_code == 200
 
     def test_login_unapproved_user(self, app, client):
         with app.app_context():
             user = User(
-                email='unapproved@accenture.com',
+                email='unapproved@example.com',
                 display_name='Unapproved',
                 role='resource',
                 is_approved=False,
@@ -174,13 +173,13 @@ class TestRoutes:
             )
             db.session.add(user)
             db.session.commit()
-        resp = client.post('/auth/login', data={'email': 'unapproved@accenture.com'}, follow_redirects=True)
+        resp = client.post('/auth/login', data={'email': 'unapproved@example.com'}, follow_redirects=True)
         assert resp.status_code == 200
 
     def test_login_otp_flow(self, app, client):
         with app.app_context():
             user = User(
-                email='valid@accenture.com',
+                email='valid@example.com',
                 display_name='Valid User',
                 role='resource',
                 is_approved=True,
@@ -189,11 +188,11 @@ class TestRoutes:
             db.session.add(user)
             db.session.commit()
         # Step 1: Request OTP (don't follow redirects — need the session)
-        resp = client.post('/auth/login', data={'email': 'valid@accenture.com'})
+        resp = client.post('/auth/login', data={'email': 'valid@example.com'})
         assert resp.status_code == 302  # redirects to verify-otp
         # Step 2: Get OTP from the user object
         with app.app_context():
-            user = User.query.filter_by(email='valid@accenture.com').first()
+            user = User.query.filter_by(email='valid@example.com').first()
             otp_code = user.otp_code
             assert otp_code is not None
             assert len(otp_code) == 6
@@ -219,7 +218,7 @@ class TestOTPAuth:
 
     def test_generate_otp(self, app):
         with app.app_context():
-            user = User(email='otp@accenture.com', display_name='OTP User', role='resource')
+            user = User(email='otp@example.com', display_name='OTP User', role='resource')
             db.session.add(user)
             db.session.commit()
             otp = user.generate_otp()
@@ -230,7 +229,7 @@ class TestOTPAuth:
 
     def test_verify_otp_valid(self, app):
         with app.app_context():
-            user = User(email='verify@accenture.com', display_name='Verify', role='resource')
+            user = User(email='verify@example.com', display_name='Verify', role='resource')
             db.session.add(user)
             db.session.commit()
             otp = user.generate_otp()
@@ -241,7 +240,7 @@ class TestOTPAuth:
 
     def test_verify_otp_invalid(self, app):
         with app.app_context():
-            user = User(email='bad_otp@accenture.com', display_name='Bad OTP', role='resource')
+            user = User(email='bad_otp@example.com', display_name='Bad OTP', role='resource')
             db.session.add(user)
             db.session.commit()
             user.generate_otp()
@@ -251,7 +250,7 @@ class TestOTPAuth:
     def test_verify_otp_expired(self, app):
         from datetime import datetime, timedelta
         with app.app_context():
-            user = User(email='expired@accenture.com', display_name='Expired', role='resource')
+            user = User(email='expired@example.com', display_name='Expired', role='resource')
             db.session.add(user)
             db.session.commit()
             otp = user.generate_otp()
@@ -262,13 +261,12 @@ class TestOTPAuth:
 
     def test_is_super_admin(self, app):
         with app.app_context():
-            # Super admin is auto-created by _ensure_super_admin()
-            super_admin = User.query.filter_by(
-                email='pratyush.vashistha@accenture.com'
-            ).first()
+            # Super admin is auto-created by _ensure_super_admin() using SUPER_ADMIN_EMAIL env var
+            super_admin_email = User.get_super_admin_email()
+            super_admin = User.query.filter_by(email=super_admin_email).first()
             assert super_admin is not None
             assert super_admin.is_super_admin is True
-            regular = User(email='regular@accenture.com', display_name='Regular', role='admin')
+            regular = User(email='regular@example.com', display_name='Regular', role='admin')
             db.session.add(regular)
             db.session.commit()
             assert regular.is_super_admin is False
@@ -279,14 +277,14 @@ class TestUserApproval:
 
     def test_new_user_not_approved(self, app):
         with app.app_context():
-            user = User(email='new@accenture.com', display_name='New', role='resource')
+            user = User(email='new@example.com', display_name='New', role='resource')
             db.session.add(user)
             db.session.commit()
             assert user.is_approved is False
 
     def test_approve_user(self, app):
         with app.app_context():
-            user = User(email='approve@accenture.com', display_name='ToApprove', role='resource')
+            user = User(email='approve@example.com', display_name='ToApprove', role='resource')
             db.session.add(user)
             db.session.commit()
             user.is_approved = True
